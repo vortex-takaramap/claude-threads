@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (cherry-picked from upstream)
+- **Per-platform `lifecycle` visibility** (#505, thanks @kaza). Session status posts — the idle warning, the timeout notice, the pause notice, the resume notice and the shutdown notice a deploy leaves in every open thread — are the bulk of what a quiet channel contains when the bot is used as an assistant rather than a task runner. `lifecycle: minimal` drops the idle warning, which predicts a timeout the next message would undo anyway; `hidden` drops the status posts entirely. Defaults to `full`, so nothing changes unless you set it. Editing a post the thread already has is never suppressed: it adds no post and no notification, and leaving a stale "session idle" up across a restart would read worse than the edit. An abnormal exit survives every level, because a session that died must not look like one that finished. At `hidden` there is no post for a 🔄 reaction to resume from, so the channel sticky tells the reader to send a message instead.
+
 ## [1.36.1] - 2026-09-10
 
 ### Fixed
