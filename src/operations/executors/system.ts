@@ -71,7 +71,7 @@ export class SystemExecutor extends BaseExecutor<SystemState> {
     const formattedMessage = this.formatSystemMessage(op.message, op.level, ctx.formatter);
 
     try {
-      const post = await ctx.createPost(formattedMessage, { type: 'system' });
+      const post = await ctx.createPost(formattedMessage, { type: 'system', status: op.level === 'error' ? 'error' : undefined });
 
       // Track ephemeral posts
       if (op.ephemeral) {
@@ -120,7 +120,7 @@ export class SystemExecutor extends BaseExecutor<SystemState> {
   private async postLevel(level: 'info' | 'warning' | 'error' | 'success', message: string, ctx: ExecutorContext): Promise<PlatformPost | undefined> {
     const formattedMessage = this.formatSystemMessage(message, level, ctx.formatter);
     try {
-      return await ctx.createPost(formattedMessage, { type: 'system' });
+      return await ctx.createPost(formattedMessage, { type: 'system', status: level === 'error' ? 'error' : undefined });
     } catch (err) {
       ctx.logger.error(`Failed to post ${level} message: ${err}`);
       return undefined;

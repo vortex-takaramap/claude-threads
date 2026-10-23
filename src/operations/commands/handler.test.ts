@@ -189,7 +189,7 @@ describe('inviteUser', () => {
     expect(session.sessionAllowedUsers.has('newuser')).toBe(true);
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('@newuser can now participate'),
-      session.threadId
+      session.threadId, undefined
     );
   });
 
@@ -206,7 +206,7 @@ describe('inviteUser', () => {
     expect(session.sessionAllowedUsers.has('nonexistent')).toBe(false);
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('does not exist'),
-      session.threadId
+      session.threadId, { status: 'error' }
     );
   });
 
@@ -224,7 +224,7 @@ describe('inviteUser', () => {
     expect(session.sessionAllowedUsers.has('newuser')).toBe(false);
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('Only @testuser'),
-      session.threadId
+      session.threadId, { status: 'error' }
     );
   });
 
@@ -361,7 +361,7 @@ describe('kickUser', () => {
     expect(session.sessionAllowedUsers.has('inviteduser')).toBe(false);
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('@inviteduser removed'),
-      session.threadId
+      session.threadId, undefined
     );
   });
 
@@ -377,7 +377,7 @@ describe('kickUser', () => {
 
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('does not exist'),
-      session.threadId
+      session.threadId, { status: 'error' }
     );
   });
 
@@ -395,7 +395,7 @@ describe('kickUser', () => {
     expect(session.sessionAllowedUsers.has('testuser')).toBe(true);
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('Cannot kick session owner'),
-      session.threadId
+      session.threadId, { status: 'error' }
     );
   });
 
@@ -412,7 +412,7 @@ describe('kickUser', () => {
 
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('globally allowed'),
-      session.threadId
+      session.threadId, { status: 'error' }
     );
   });
 
@@ -428,7 +428,7 @@ describe('kickUser', () => {
 
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('was not in this session'),
-      session.threadId
+      session.threadId, { status: 'error' }
     );
   });
 
@@ -604,7 +604,7 @@ describe('cancelSession', () => {
     expect(session.lifecycle.state).toBe('cancelling');
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('Session cancelled'),
-      session.threadId
+      session.threadId, undefined
     );
     expect(ctx.ops.killSession).toHaveBeenCalledWith(session.threadId);
   });
@@ -621,7 +621,7 @@ describe('interruptSession', () => {
     expect(session.claude.interrupt).toHaveBeenCalled();
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('Interrupted'),
-      session.threadId
+      session.threadId, undefined
     );
   });
 
@@ -639,7 +639,7 @@ describe('interruptSession', () => {
 
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('idle'),
-      session.threadId
+      session.threadId, undefined
     );
   });
 });
@@ -691,7 +691,7 @@ describe('approvePendingPlan', () => {
     // Should post info message
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('No pending plan'),
-      session.threadId
+      session.threadId, undefined
     );
 
     // Should not update any post
@@ -712,7 +712,7 @@ describe('approvePendingPlan', () => {
     // Should show "no pending plan" info since it's an action, not a plan
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('No pending plan'),
-      session.threadId
+      session.threadId, undefined
     );
 
     // Should not clear the action pending approval (via messageManager)
@@ -1423,7 +1423,7 @@ describe('approvals: owner gates on text commands', () => {
     // Rejected: warning posted, plan untouched.
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('participants'),
-      session.threadId
+      session.threadId, { status: 'error' }
     );
     expect(session.messageManager?.getPendingApproval()).not.toBeNull();
     expect(session.planApproved).toBeFalsy();
@@ -1457,7 +1457,7 @@ describe('approvals: owner gates on text commands', () => {
     expect(session.sessionAllowedUsers.has('outsider')).toBe(false);
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('participants'),
-      session.threadId
+      session.threadId, { status: 'error' }
     );
   });
 

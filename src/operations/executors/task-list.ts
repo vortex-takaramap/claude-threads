@@ -354,7 +354,7 @@ export class TaskListExecutor extends BaseExecutor<TaskListState> {
     const post = await ctx.createInteractivePost(
       displayContent,
       [MINIMIZE_TOGGLE_EMOJIS[0]],
-      { type: 'task_list', interactionType: 'toggle_minimize' }
+      { status: 'work', type: 'task_list', interactionType: 'toggle_minimize' }
     );
 
     this.state.tasksPostId = post.id;
@@ -405,7 +405,7 @@ export class TaskListExecutor extends BaseExecutor<TaskListState> {
     const post = await ctx.createInteractivePost(
       displayContent,
       [MINIMIZE_TOGGLE_EMOJIS[0]],
-      { type: 'task_list', interactionType: 'toggle_minimize' }
+      { status: 'work', type: 'task_list', interactionType: 'toggle_minimize' }
     );
 
     this.state.tasksPostId = post.id;
@@ -561,6 +561,7 @@ export class TaskListExecutor extends BaseExecutor<TaskListState> {
     try {
       await ctx.platform.updatePost(oldPostId, newContent);
       repurposedPostId = oldPostId;
+      // ponytail: Reused content keeps the work icon; create a new content post to avoid this.
       this.registerPost(oldPostId, { type: 'content' });
       ctx.threadLogger?.logExecutor('task_list', 'update', oldPostId, { action: 'repurposed_for_content' }, 'bumpAndGetOldPost');
     } catch (err) {
@@ -601,7 +602,7 @@ export class TaskListExecutor extends BaseExecutor<TaskListState> {
     const post = await ctx.createInteractivePost(
       content,
       [MINIMIZE_TOGGLE_EMOJIS[0]],
-      { type: 'task_list', interactionType: 'toggle_minimize' }
+      { status: 'work', type: 'task_list', interactionType: 'toggle_minimize' }
     );
 
     this.state.tasksPostId = post.id;

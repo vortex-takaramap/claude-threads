@@ -239,6 +239,7 @@ describe('ReactionRouter.handleReaction', () => {
       expect(createPost).toHaveBeenCalledWith(
         expect.stringContaining('not authorized'),
         'thread-paused',
+        { status: 'error' },
       );
       // The refusal must not @-mention the refused user — when that user is
       // another claude-threads bot, the mention wakes it into replying and
@@ -360,6 +361,7 @@ describe('DCM approvals scoping (reaction gate)', () => {
     expect(createPost).toHaveBeenCalledWith(
       expect.stringContaining('not authorized'),
       'dcm:test',
+      { status: 'error' },
     );
   });
 

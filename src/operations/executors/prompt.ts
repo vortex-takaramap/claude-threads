@@ -385,7 +385,7 @@ export class PromptExecutor extends BaseExecutor<PromptState> {
         (pending as { unauthorizedWarned?: boolean }).unauthorizedWarned = true;
         await ctx.createPost(
           `⚠️ Only ${ctx.formatter.formatUserMention(pending.requestedBy)} or allowed users can decide a ${label.toLowerCase()} Claude proposed.`,
-          { type: 'system' },
+          { type: 'system', status: 'error' },
         );
       }
       return true;

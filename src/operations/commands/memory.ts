@@ -53,7 +53,7 @@ export async function rememberEntry(
 
   const sanitized = sanitizeEntryText(text);
   if (!sanitized) {
-    await post(session, 'warning', `Usage: ${formatter.formatCode('!remember <text>')}`);
+    await post(session, 'warning', `Usage: ${formatter.formatCode('!remember <text>')}`, { status: 'error' });
     return;
   }
   if (entryTextExceedsCap(text)) {

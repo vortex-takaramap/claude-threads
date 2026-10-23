@@ -603,7 +603,7 @@ export class MessageManager {
 
       // Helper methods that combine create + register + track
       createPost: async (content, options) => {
-        const post = await this.platform.createPost(content, this.threadId);
+        const post = await this.platform.createPost(content, this.threadId, { status: options.status });
         this.registerPost(post.id, options);
         this.updateLastMessage(post);
         return post;
@@ -634,7 +634,8 @@ export class MessageManager {
               // without waiting for the option reactions to finish.
               doneInFlight?.();
               onPostCreated?.(created);
-            }
+            },
+            { status: options.status }
           );
           this.updateLastMessage(post);
           return post;

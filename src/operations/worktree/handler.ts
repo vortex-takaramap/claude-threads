@@ -266,7 +266,7 @@ export async function postWorktreePrompt(
     reactionOptions.push('x');
   }
 
-  const worktreePost = await postInteractiveAndRegister(session, message, reactionOptions, registerPost);
+  const worktreePost = await postInteractiveAndRegister(session, message, reactionOptions, registerPost, { status: 'ask' });
 
   // Track the post for reaction handling
   session.worktreePromptPostId = worktreePost.id;
@@ -627,7 +627,8 @@ export async function createAndSwitchToWorktree(
       `🌿 ${fmt.formatBold(`Worktree for branch ${fmt.formatCode(branch)} already exists`)} at ${fmt.formatCode(shortPath)}.\n` +
       `React with 👍 to join this worktree, or ❌ to continue in the current directory.`,
       ['+1', 'x'],  // thumbsup and x emoji names
-      options.registerPost
+      options.registerPost,
+      { status: 'ask' }
     );
 
     // Store the pending prompt for reaction handling
@@ -850,7 +851,8 @@ export async function createAndSwitchToWorktree(
         `${suggestion}\n\n` +
         `Reply with a different branch name to try again.`,
         [],  // No skip option in require mode
-        options.registerPost
+        options.registerPost,
+        { status: 'ask' }
       );
 
       // Keep pending state but update the prompt post ID
@@ -868,7 +870,8 @@ export async function createAndSwitchToWorktree(
       `${suggestion}\n\n` +
       `Reply with a different branch name to try again, or react with ❌ to continue in the main repo.`,
       ['x'],  // Allow skipping in prompt mode
-      options.registerPost
+      options.registerPost,
+      { status: 'ask' }
     );
 
     // Store pending state for handling the user's response
@@ -1130,7 +1133,7 @@ export async function cleanupWorktreeCommand(
 
   // Check for other sessions using this worktree
   if (hasOtherSessionsUsingWorktree(worktreePath, session.sessionId)) {
-    await post(session, 'warning', `Cannot cleanup: other sessions are still using this worktree`);
+    await post(session, 'warning', `Cannot cleanup: other sessions are still using this worktree`, { status: 'error' });
     sessionLog(session).info(`🌿 Skipping cleanup - other sessions using worktree`);
     return;
   }

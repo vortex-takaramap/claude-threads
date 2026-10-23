@@ -130,13 +130,14 @@ describe('TaskListExecutor', () => {
       formatter: mockFormatter,
       logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, debugJson: () => {}, forSession: () => ({} as any) } as any,
       createPost: async (content, options) => {
-        const post = await platform.createPost(content, threadId);
+        const post = await platform.createPost(content, threadId, { status: options.status });
         registerPostMock(post.id, options);
         updateLastMessageMock(post);
         return post;
       },
       createInteractivePost: async (content, reactions, options) => {
-        const post = await platform.createInteractivePost(content, reactions, threadId);
+        expect(options.status).toBe('work');
+        const post = await platform.createInteractivePost(content, reactions, threadId, undefined, { status: options.status });
         registerPostMock(post.id, options);
         updateLastMessageMock(post);
         return post;
@@ -1144,6 +1145,7 @@ describe('TaskListExecutor', () => {
       await executor.execute(createTaskListOp('test', 'update', createSampleTasks()), ctx);
 
       expect(registerPostMock).toHaveBeenCalledWith('post_1', {
+        status: 'work',
         type: 'task_list',
         interactionType: 'toggle_minimize',
       });

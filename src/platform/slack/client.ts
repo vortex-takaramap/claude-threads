@@ -1,5 +1,5 @@
 import { WebSocket, countPingsAsActivity } from '../../utils/websocket.js';
-import type { McpServerConfig } from '../../config/types.js';
+import { resolveStatusIcons, type StatusIcons, type McpServerConfig } from '../../config/types.js';
 import type { SlackPlatformConfig } from '../../config/index.js';
 import { resolveReconnectPolicy } from '../../config/index.js';
 import { wsLogger, createLogger } from '../../utils/logger.js';
@@ -112,12 +112,15 @@ export class SlackClient extends BasePlatformClient {
   private sharedEventSource?: SlackClient;
   private socketConnected = false;
 
+  private readonly icons?: StatusIcons;
+
   constructor(platformConfig: SlackPlatformConfig, sharedEventSource?: SlackClient) {
     super();
     this.sharedEventSource = sharedEventSource;
     this.installStateMirror();
     this.platformId = platformConfig.id;
     this.displayName = platformConfig.displayName;
+    this.icons = resolveStatusIcons(platformConfig.icons);
     this.botToken = platformConfig.botToken;
     this.appToken = platformConfig.appToken;
     this.channelId = platformConfig.channelId;
@@ -1053,7 +1056,9 @@ export class SlackClient extends BasePlatformClient {
     // Truncate message if it exceeds Slack's limit to prevent msg_too_long errors
     const truncatedMessage = this.truncateMessageIfNeeded(message);
 
+    const icon = this.icons?.[options?.status ?? 'normal'];
     const body: Record<string, unknown> = {
+      ...(icon ? { icon_emoji: icon } : {}),
       channel: this.channelId,
       text: truncatedMessage,
       unfurl_links: shouldUnfurl,

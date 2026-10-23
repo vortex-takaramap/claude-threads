@@ -1047,7 +1047,27 @@ export interface MattermostPlatformConfig extends PlatformInstanceConfig {
   outboundFiles?: OutboundFilesConfig;
 }
 
+export type StatusIcons = Partial<Record<'normal' | 'work' | 'ask' | 'error', string>>;
+
+export function resolveStatusIcons(value: unknown): StatusIcons | undefined {
+  if (value === undefined) return undefined;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Invalid icons: expected an object');
+  }
+  const icons: StatusIcons = {};
+  for (const status of ['normal', 'work', 'ask', 'error'] as const) {
+    const emoji = (value as Record<string, unknown>)[status];
+    if (emoji === undefined) continue;
+    if (typeof emoji !== 'string' || !/^(?:[a-z0-9_+'-]+|:[a-z0-9_+'-]+:)$/.test(emoji)) {
+      throw new Error(`Invalid icons.${status}: expected a Slack emoji name`);
+    }
+    icons[status] = `:${emoji.replace(/^:|:$/g, '')}:`;
+  }
+  return icons;
+}
+
 export interface SlackPlatformConfig extends PlatformInstanceConfig {
+  icons?: StatusIcons;
   type: 'slack';
   botToken: string;
   appToken: string;

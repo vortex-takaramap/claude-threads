@@ -203,7 +203,7 @@ export async function handleMessage(
       (client.isBotMentioned(message) && client.extractPrompt(message).toLowerCase() === '!kill')
     ) {
       if (!client.isUserAllowed(username)) {
-        await client.createPost(`⛔ Only authorized users can use ${formatter.formatCode('!kill')}`, threadRoot);
+        await client.createPost(`⛔ Only authorized users can use ${formatter.formatCode('!kill')}`, threadRoot, { status: 'error' });
         return;
       }
       auditLog(platformId, {
@@ -217,7 +217,8 @@ export async function handleMessage(
       try {
         await client.createPost(
           `🔴 ${formatter.formatBold('EMERGENCY SHUTDOWN')} initiated by ${formatter.formatUserMention(username)} - killing ${activeCount} active session${activeCount !== 1 ? 's' : ''}`,
-          threadRoot
+          threadRoot,
+          { status: 'error' }
         );
       } catch (err) {
         logSilentError('kill-confirmation-post', err);
@@ -227,7 +228,7 @@ export async function handleMessage(
       for (const tid of session.registry.getActiveThreadIds()) {
         if (tid === threadRoot) continue; // Skip the thread where we already posted
         try {
-          await client.createPost(`🔴 ${formatter.formatBold('EMERGENCY SHUTDOWN')} by ${formatter.formatUserMention(username)}`, tid);
+          await client.createPost(`🔴 ${formatter.formatBold('EMERGENCY SHUTDOWN')} by ${formatter.formatUserMention(username)}`, tid, { status: 'error' });
         } catch (err) {
           logSilentError('kill-notify-session', err);
         }
@@ -471,7 +472,8 @@ export async function handleMessage(
           if (shouldPostResumeRefusal(platformId, threadRoot, username)) {
             await client.createPost(
               `⚠️ ${formatter.formatCode(username)} is not authorized to resume this session`,
-              threadRoot
+              threadRoot,
+              { status: 'error' }
             );
           }
           return;
@@ -554,7 +556,7 @@ export async function handleMessage(
         // No @-mention and rate-limited, for the same loop-safety reasons as
         // the resume refusal above (#491).
         if (shouldPostResumeRefusal(platformId, threadRoot, username)) {
-          await client.createPost(`⚠️ ${formatter.formatCode(username)} is not authorized`, threadRoot);
+          await client.createPost(`⚠️ ${formatter.formatCode(username)} is not authorized`, threadRoot, { status: 'error' });
         }
       }
       return;
@@ -566,7 +568,7 @@ export async function handleMessage(
     const files = post.metadata?.files;
 
     if (!prompt && !files?.length) {
-      await client.createPost(`Mention me with your request`, threadRoot);
+      await client.createPost(`Mention me with your request`, threadRoot, { status: 'ask' });
       return;
     }
 
@@ -670,7 +672,7 @@ export async function handleMessage(
     if (!prompt.trim() && !files?.length && !worktreeBranch) {
       // Options were set but no actual prompt - could optionally start session anyway
       // For now, require a prompt or files (unless worktree specified)
-      await client.createPost(`Mention me with your request`, threadRoot);
+      await client.createPost(`Mention me with your request`, threadRoot, { status: 'ask' });
       return;
     }
 
@@ -705,7 +707,7 @@ export async function handleMessage(
     logger?.error(`Error handling message: ${errorMessage}`);
     // Try to notify user if possible
     try {
-      await client.createPost(`⚠️ An error occurred: ${errorMessage}`, threadRoot);
+      await client.createPost(`⚠️ An error occurred: ${errorMessage}`, threadRoot, { status: 'error' });
     } catch (postErr) {
       logSilentError('error-notification-post', postErr);
     }

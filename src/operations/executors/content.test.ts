@@ -90,13 +90,14 @@ describe('ContentExecutor', () => {
       logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, debugJson: () => {}, forSession: () => ({} as any) } as any,
       // Helper methods that combine create + register + track
       createPost: async (content, options) => {
-        const post = await platform.createPost(content, threadId);
+        expect(options.status).toBe('normal');
+        const post = await platform.createPost(content, threadId, { status: options.status });
         registeredPosts.set(post.id, options ?? { type: 'content' });
         lastMessage = post;
         return post;
       },
       createInteractivePost: async (content, reactions, options) => {
-        const post = await platform.createInteractivePost(content, reactions, threadId);
+        const post = await platform.createInteractivePost(content, reactions, threadId, undefined, { status: options.status });
         registeredPosts.set(post.id, options);
         lastMessage = post;
         return post;
@@ -152,7 +153,7 @@ describe('ContentExecutor', () => {
       await executor.executeAppend(createAppendContentOp('test', 'Hello World'), ctx);
       await executor.executeFlush(createFlushOp('test', 'explicit'), ctx);
 
-      expect(platform.createPost).toHaveBeenCalledWith('Hello World', 'thread-123');
+      expect(platform.createPost).toHaveBeenCalledWith('Hello World', 'thread-123', { status: 'normal' });
       expect(executor.getState().currentPostId).toBe('post_1');
       expect(executor.getState().pendingContent).toBe('');
     });
@@ -454,6 +455,7 @@ describe('ContentExecutor', () => {
         formatter: mockFormatter,
         logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, debugJson: () => {}, forSession: () => ({} as any) } as any,
         createPost: async (content, options) => {
+        expect(options.status).toBe('normal');
           const post = await testPlatform.createPost(content, 'thread-123');
           registeredPosts.set(post.id, options ?? { type: 'content' });
           lastMessage = post;
@@ -564,6 +566,7 @@ describe('ContentExecutor', () => {
         formatter: mockFormatter,
         logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, debugJson: () => {}, forSession: () => ({} as any) } as any,
         createPost: async (content, options) => {
+        expect(options.status).toBe('normal');
           const post = await testPlatform.createPost(content, 'thread-123');
           registeredPosts.set(post.id, options ?? { type: 'content' });
           lastMessage = post;
@@ -642,6 +645,7 @@ describe('ContentExecutor', () => {
         formatter: mockFormatter,
         logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, debugJson: () => {}, forSession: () => ({} as any) } as any,
         createPost: async (content, options) => {
+        expect(options.status).toBe('normal');
           const post = await testPlatform.createPost(content, 'thread-123');
           registeredPosts.set(post.id, options ?? { type: 'content' });
           lastMessage = post;
@@ -711,6 +715,7 @@ describe('ContentExecutor', () => {
         formatter: mockFormatter,
         logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, debugJson: () => {}, forSession: () => ({} as any) } as any,
         createPost: async (content, options) => {
+        expect(options.status).toBe('normal');
           const post = await testPlatform.createPost(content, 'thread-123');
           registeredPosts.set(post.id, options ?? { type: 'content' });
           lastMessage = post;
@@ -782,6 +787,7 @@ describe('ContentExecutor', () => {
         formatter: mockFormatter,
         logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, debugJson: () => {}, forSession: () => ({} as any) } as any,
         createPost: async (content, options) => {
+        expect(options.status).toBe('normal');
           const post = await testPlatform.createPost(content, 'thread-123');
           registeredPosts.set(post.id, options ?? { type: 'content' });
           lastMessage = post;
@@ -872,6 +878,7 @@ describe('ContentExecutor', () => {
         formatter: mockFormatter,
         logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, debugJson: () => {}, forSession: () => ({} as any) } as any,
         createPost: async (content, options) => {
+        expect(options.status).toBe('normal');
           const post = await testPlatform.createPost(content, 'thread-123');
           registeredPosts.set(post.id, options ?? { type: 'content' });
           lastMessage = post;

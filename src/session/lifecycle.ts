@@ -431,7 +431,8 @@ export function handleRateLimit(session: Session, hit: RateLimitHit, ctx: Sessio
     session,
     'warning',
     `⚠️ Claude account \`${session.claudeAccountId}\` hit a rate limit. ` +
-      `New sessions will use another account until it resets (~${minutes}min).`
+      `New sessions will use another account until it resets (~${minutes}min).`,
+    { status: 'error' }
   );
 }
 
@@ -894,7 +895,7 @@ async function startSessionImpl(
       threadId: replyToPostId || '',
       sessionId: 'temp',
     } as Session;
-    await post(tempSession, 'warning', `${formatter.formatBold('Too busy')} - ${activeOrPending} sessions active. Please try again later.`);
+    await post(tempSession, 'warning', `${formatter.formatBold('Too busy')} - ${activeOrPending} sessions active. Please try again later.`, { status: 'error' });
     return;
   }
 
@@ -923,7 +924,8 @@ async function startSessionImpl(
     startPost = await withErrorHandling(
       () => platform.createPost(
         startFormatter.formatItalic('Claude Threads session starting...'),
-        replyToPostId
+        replyToPostId,
+        { status: 'work' }
       ),
       { action: 'Create session post' }
     );
@@ -970,7 +972,7 @@ async function startSessionImpl(
       if (startPost) {
         await platform.updatePost(startPost.id, msg);
       } else {
-        await platform.createPost(msg, replyToPostId);
+        await platform.createPost(msg, replyToPostId, { status: 'error' });
       }
       releasePendingStart();
       return;
@@ -982,7 +984,7 @@ async function startSessionImpl(
       if (startPost) {
         await platform.updatePost(startPost.id, msg);
       } else {
-        await platform.createPost(msg, replyToPostId);
+        await platform.createPost(msg, replyToPostId, { status: 'error' });
       }
       releasePendingStart();
       return;
@@ -1419,7 +1421,7 @@ async function resumeSessionImpl(
       sessionId: `${state.platformId}:${state.threadId}`,
     } as Session;
     await withErrorHandling(
-      () => post(tempSession, 'warning', `${resumeFormatter.formatBold('Cannot resume session')} - working directory no longer exists:\n${resumeFormatter.formatCode(state.workingDir)}\n\nPlease start a new session.`),
+      () => post(tempSession, 'warning', `${resumeFormatter.formatBold('Cannot resume session')} - working directory no longer exists:\n${resumeFormatter.formatCode(state.workingDir)}\n\nPlease start a new session.`, { status: 'error' }),
       { action: 'Post resume failure notification' }
     );
     return;
@@ -1762,7 +1764,7 @@ async function resumeSessionImpl(
     // Try to notify user
     const failFormatter = session.platform.getFormatter();
     await withErrorHandling(
-      () => post(session, 'warning', `${failFormatter.formatBold('Could not resume previous session.')} Starting fresh.\n${failFormatter.formatItalic('Your previous conversation context is preserved, but Claude needs to re-read it.')}`),
+      () => post(session, 'warning', `${failFormatter.formatBold('Could not resume previous session.')} Starting fresh.\n${failFormatter.formatItalic('Your previous conversation context is preserved, but Claude needs to re-read it.')}`, { status: 'error' }),
       { action: 'Post resume failure notification', session }
     );
 
@@ -2075,7 +2077,7 @@ export async function handleExit(
       ? `${earlyExitFormatter.formatBold('Session ended')} before Claude could respond: the Claude CLI refuses ${earlyExitFormatter.formatCode('--strict-mcp-config')} because an enterprise-managed MCP config is present. Set ${earlyExitFormatter.formatCode('strictMcpConfig: false')} on this platform and restart the bot.`
       : `${earlyExitFormatter.formatBold('Session ended')} before Claude could respond (exit code ${code}). Please start a new session.`;
     await withErrorHandling(
-      () => post(session, 'warning', earlyExitText),
+      () => post(session, 'warning', earlyExitText, { status: 'error' }),
       { action: 'Post early exit notification', session }
     );
     sessionLog(session).info(`⚠ Session ended early (exit code ${code})`);
@@ -2140,7 +2142,7 @@ export async function handleExit(
       // Still have retries left - persist with updated fail count
       ctx.ops.persistSession(session);
       await withErrorHandling(
-        () => post(session, 'warning', `${resumeFailFormatter.formatBold('Session resume failed')} (exit code ${code}, attempt ${session.lifecycle.resumeFailCount}/${MAX_RESUME_FAILURES}). Will retry on next bot restart.`),
+        () => post(session, 'warning', `${resumeFailFormatter.formatBold('Session resume failed')} (exit code ${code}, attempt ${session.lifecycle.resumeFailCount}/${MAX_RESUME_FAILURES}). Will retry on next bot restart.`, { status: 'error' }),
         { action: 'Post session resume failure', session }
       );
     }
@@ -2174,7 +2176,7 @@ export async function handleExit(
     shouldPostLifecycle(ctx.ops.getPlatformOverhead(session.platformId).lifecycle, 'abnormal-exit')
   ) {
     const exitFormatter = session.platform.getFormatter();
-    await post(session, 'info', exitFormatter.formatBold(`[Exited: ${code}]`));
+    await post(session, 'info', exitFormatter.formatBold(`[Exited: ${code}]`), { status: 'error' });
   }
 
   // Unregister from worktree reference counting, but DON'T cleanup automatically

@@ -512,7 +512,7 @@ export class ContentExecutor extends BaseExecutor<ContentState> {
 
     // Create new post
     try {
-      const post = await ctx.createPost(content, { type: 'content' });
+      const post = await ctx.createPost(content, { status: 'normal', type: 'content' });
       this.state.currentPostId = post.id;
       this.state.currentPostContent = content;
       this.clearFlushedContent(pendingAtFlushStart);

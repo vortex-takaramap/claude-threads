@@ -292,7 +292,7 @@ export async function approvePendingPlan(
   const ownerScoped =
     resolveApprovals(session.platform.approvals, isDcmThreadId(session.threadId)) === 'owner';
   if (ownerScoped && !session.sessionAllowedUsers.has(username)) {
-    await post(session, 'warning', `Only session participants can approve plans here`);
+    await post(session, 'warning', `Only session participants can approve plans here`, { status: 'error' });
     sessionLog(session).warn(`Unauthorized: @${username} tried !approve (approvals: owner)`, {
       event: 'approve.rejected',
       username,
@@ -630,7 +630,7 @@ export async function inviteUser(
   const user = await session.platform.getUserByUsername(invitedUser);
   const formatter = session.platform.getFormatter();
   if (!user) {
-    await post(session, 'warning', `User ${formatter.formatUserMention(invitedUser)} does not exist on this platform`);
+    await post(session, 'warning', `User ${formatter.formatUserMention(invitedUser)} does not exist on this platform`, { status: 'error' });
     sessionLog(session).warn(`👋 User @${invitedUser} not found`);
     return;
   }
@@ -668,21 +668,21 @@ export async function kickUser(
   const user = await session.platform.getUserByUsername(kickedUser);
   const formatter = session.platform.getFormatter();
   if (!user) {
-    await post(session, 'warning', `User ${formatter.formatUserMention(kickedUser)} does not exist on this platform`);
+    await post(session, 'warning', `User ${formatter.formatUserMention(kickedUser)} does not exist on this platform`, { status: 'error' });
     sessionLog(session).warn(`🚫 User @${kickedUser} not found`);
     return;
   }
 
   // Can't kick session owner
   if (kickedUser === session.startedBy) {
-    await post(session, 'warning', `Cannot kick session owner ${formatter.formatUserMention(session.startedBy)}`);
+    await post(session, 'warning', `Cannot kick session owner ${formatter.formatUserMention(session.startedBy)}`, { status: 'error' });
     sessionLog(session).warn(`🚫 Cannot kick session owner @${session.startedBy}`);
     return;
   }
 
   // Can't kick globally allowed users
   if (session.platform.isUserAllowed(kickedUser)) {
-    await post(session, 'warning', `${formatter.formatUserMention(kickedUser)} is globally allowed and cannot be kicked from individual sessions`);
+    await post(session, 'warning', `${formatter.formatUserMention(kickedUser)} is globally allowed and cannot be kicked from individual sessions`, { status: 'error' });
     sessionLog(session).warn(`🚫 Cannot kick globally allowed user @${kickedUser}`);
     return;
   }
@@ -699,7 +699,7 @@ export async function kickUser(
     ctx.ops.persistSession(session);
     await postCollaboratorUpdatedNotice(session, ctx);
   } else {
-    await post(session, 'warning', `${formatter.formatUserMention(kickedUser)} was not in this session`);
+    await post(session, 'warning', `${formatter.formatUserMention(kickedUser)} was not in this session`, { status: 'error' });
     sessionLog(session).warn(`🚫 @${kickedUser} was not in session`);
   }
 }
@@ -969,7 +969,8 @@ export async function requestMessageApproval(
     session,
     approvalMessage,
     [APPROVAL_EMOJIS[0], ALLOW_ALL_EMOJIS[0], DENIAL_EMOJIS[0]],
-    ctx.ops.registerPost
+    ctx.ops.registerPost,
+    { status: 'ask' }
   );
 
   session.messageManager?.setPendingMessageApproval({
@@ -1251,7 +1252,8 @@ export async function showUpdateStatus(
     session,
     message,
     [APPROVAL_EMOJIS[0], DENIAL_EMOJIS[0]],
-    ctx.ops.registerPost
+    ctx.ops.registerPost,
+    { status: 'ask' }
   );
 
   // Store pending update prompt for reaction handling
@@ -1425,7 +1427,8 @@ export async function reportBug(
     session,
     previewMessage,
     [APPROVAL_EMOJIS[0], DENIAL_EMOJIS[0]],
-    ctx.ops.registerPost
+    ctx.ops.registerPost,
+    { status: 'ask' }
   );
 
   // Store pending bug report

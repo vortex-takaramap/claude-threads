@@ -71,7 +71,7 @@ describe('QuestionApprovalExecutor', () => {
       await executor.execute(op, ctx);
 
       expect(executor.hasPendingQuestions()).toBe(true);
-      expect(ctx.platform.createInteractivePost).toHaveBeenCalled();
+      expect(ctx.platform.createInteractivePost).toHaveBeenCalledWith(expect.any(String), expect.any(Array), ctx.threadId, expect.any(Function), { status: 'ask' });
       expect(registeredPosts.size).toBe(1);
     });
 
@@ -180,7 +180,7 @@ describe('QuestionApprovalExecutor', () => {
       await executor.execute(op, ctx);
 
       expect(executor.hasPendingApproval()).toBe(true);
-      expect(ctx.platform.createInteractivePost).toHaveBeenCalled();
+      expect(ctx.platform.createInteractivePost).toHaveBeenCalledWith(expect.any(String), expect.any(Array), ctx.threadId, expect.any(Function), { status: 'ask' });
 
       const approval = executor.getPendingApproval();
       expect(approval?.type).toBe('plan');

@@ -186,7 +186,8 @@ describe('handleError', () => {
 
     expect(session.platform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('Error'),
-      'thread-123'
+      'thread-123',
+      { status: 'error' }
     );
   });
 

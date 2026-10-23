@@ -16,6 +16,7 @@
  * - Legacy (deprecated): `postSuccess(session, 'Operation complete')`
  */
 
+import type { PostWriteOptions } from '../../platform/types.js';
 import type { Session } from '../../session/types.js';
 import { transitionTo } from '../../session/types.js';
 import type { PlatformPost, PlatformFormatter } from '../../platform/index.js';
@@ -73,11 +74,12 @@ export type PostType = keyof typeof POST_TYPES;
 export async function post(
   session: Session,
   type: PostType,
-  message: string
+  message: string,
+  options?: PostWriteOptions
 ): Promise<PlatformPost> {
   const emoji = POST_TYPES[type];
   const content = emoji ? `${emoji} ${message}` : message;
-  return createPostAndTrack(session, content);
+  return createPostAndTrack(session, content, type === 'error' ? { ...options, status: 'error' } : options);
 }
 
 // =============================================================================
@@ -88,8 +90,8 @@ export async function post(
  * Create a post and automatically track it as the last message for jump-to-bottom links.
  * This is the core helper used by all post functions to ensure consistent tracking.
  */
-async function createPostAndTrack(session: Session, message: string): Promise<PlatformPost> {
-  const post = await session.platform.createPost(message, session.threadId);
+async function createPostAndTrack(session: Session, message: string, options?: PostWriteOptions): Promise<PlatformPost> {
+  const post = await session.platform.createPost(message, session.threadId, options);
   // Track this post for jump-to-bottom links in the sticky message
   updateLastMessage(session, post);
   return post;
@@ -203,7 +205,8 @@ export async function postInteractive(
   session: Session,
   message: string,
   reactions: string[],
-  onPostCreated?: (post: PlatformPost) => void
+  onPostCreated?: (post: PlatformPost) => void,
+  options?: PostWriteOptions
 ): Promise<PlatformPost> {
   // Mark the create as in flight before it goes out: the platform accepts
   // reactions on the post from the moment it stores it, which is earlier than
@@ -226,7 +229,8 @@ export async function postInteractive(
         // Registered (when the caller registers here) — release waiters now
         // rather than after the option reactions land.
         doneInFlight();
-      }
+      },
+      options
     );
     updateLastMessage(session, post);
     return post;
@@ -254,10 +258,11 @@ export async function postInteractiveAndRegister(
   session: Session,
   message: string,
   reactions: string[],
-  registerPost: (postId: string, threadId: string) => void
+  registerPost: (postId: string, threadId: string) => void,
+  options?: PostWriteOptions
 ): Promise<PlatformPost> {
   return postInteractive(session, message, reactions, (created) =>
-    registerPost(created.id, session.threadId)
+    registerPost(created.id, session.threadId), options
   );
 }
 

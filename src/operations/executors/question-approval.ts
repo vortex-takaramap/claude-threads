@@ -197,6 +197,7 @@ export class QuestionApprovalExecutor extends BaseExecutor<QuestionApprovalState
       message,
       [APPROVAL_EMOJIS[0], DENIAL_EMOJIS[0]],
       {
+        status: 'ask',
         type: 'plan_approval',
         interactionType: 'plan_approval',
         toolUseId: op.toolUseId,
@@ -270,6 +271,7 @@ export class QuestionApprovalExecutor extends BaseExecutor<QuestionApprovalState
       message,
       reactionOptions,
       {
+        status: 'ask',
         type: 'question',
         interactionType: 'question',
         toolUseId: this.state.pendingQuestionSet.toolUseId,

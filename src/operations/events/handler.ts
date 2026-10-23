@@ -328,7 +328,7 @@ export function handleEventPreProcessing(
       if (session.lastAuthErrorPosted !== e.error) {
         session.lastAuthErrorPosted = e.error;
         void withErrorHandling(
-          () => post(session, 'warning', `🔐 Claude CLI authentication problem: ${e.error}`),
+          () => post(session, 'warning', `🔐 Claude CLI authentication problem: ${e.error}`, { status: 'error' }),
           { action: 'Post auth status warning', session }
         );
       }

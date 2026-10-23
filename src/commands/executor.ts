@@ -54,7 +54,7 @@ const handleHelp: CommandHandler = async (ctx) => {
   const helpMessage = generateHelpMessage(ctx.formatter, {
     bugReportsEnabled: ctx.sessionManager.getBugReportsEnabled(),
   });
-  await ctx.client.createPost(helpMessage, ctx.threadId);
+  await ctx.client.createPost(helpMessage, ctx.threadId, { status: 'normal' });
   return { handled: true };
 };
 
@@ -66,12 +66,14 @@ const handleReleaseNotes: CommandHandler = async (ctx) => {
   if (notes) {
     await ctx.client.createPost(
       `${formatReleaseNotes(notes, ctx.formatter)}\n\n${formatSponsorFooter(ctx.formatter)}`,
-      ctx.threadId
+      ctx.threadId,
+      { status: 'normal' }
     );
   } else {
     await ctx.client.createPost(
       `📋 ${ctx.formatter.formatBold(`claude-threads v${VERSION}`)}\n\nRelease notes not available. See ${ctx.formatter.formatLink('GitHub releases', 'https://github.com/anneschuth/claude-threads/releases')}.`,
-      ctx.threadId
+      ctx.threadId,
+      { status: 'normal' }
     );
   }
   return { handled: true };
@@ -151,7 +153,7 @@ const handleUsage: CommandHandler = async (ctx, args) => {
     }),
     { showEmails: ctx.sessionManager.getUsageShowEmails() }
   );
-  await ctx.client.createPost(`\`\`\`\n${rendered}\n\`\`\``, ctx.threadId);
+  await ctx.client.createPost(`\`\`\`\n${rendered}\n\`\`\``, ctx.threadId, { status: 'normal' });
   return { handled: true };
 };
 
@@ -244,7 +246,8 @@ const handleRemember: CommandHandler = async (ctx, args) => {
   if (!args?.trim()) {
     await ctx.client.createPost(
       `⚠️ Usage: ${ctx.formatter.formatCode('!remember <text>')}`,
-      ctx.threadId
+      ctx.threadId,
+      { status: 'error' }
     );
     return { handled: true };
   }
@@ -274,7 +277,8 @@ const handleMemory: CommandHandler = async (ctx, args) => {
   }
   await ctx.client.createPost(
     `⚠️ Usage: ${ctx.formatter.formatCode('!memory')} or ${ctx.formatter.formatCode('!memory forget <n|text>')} or ${ctx.formatter.formatCode('!memory forget all')}`,
-    ctx.threadId
+    ctx.threadId,
+    { status: 'error' }
   );
   return { handled: true };
 };
@@ -292,7 +296,8 @@ const handleRoutine: CommandHandler = async (ctx, args) => {
   if (!args?.trim()) {
     await ctx.client.createPost(
       `⚠️ Usage: ${ctx.formatter.formatCode('!routine every weekday at 9:00, <task>')}`,
-      ctx.threadId
+      ctx.threadId,
+      { status: 'error' }
     );
     return { handled: true };
   }
@@ -327,7 +332,8 @@ const handleWatch: CommandHandler = async (ctx, args) => {
   if (!args?.trim()) {
     await ctx.client.createPost(
       `\u26A0\uFE0F Usage: ${ctx.formatter.formatCode('!watch when <something happens>, <task>')}`,
-      ctx.threadId
+      ctx.threadId,
+      { status: 'error' }
     );
     return { handled: true };
   }
@@ -422,6 +428,7 @@ const handlePermissions: CommandHandler = async (ctx, args) => {
     await ctx.client.createPost(
       `⚠️ Unknown permission mode. Usage: \`!permissions default|auto|bypass\` (aliases: \`interactive\`, \`skip\`).`,
       ctx.threadId,
+      { status: 'error' }
     );
     return { handled: true };
   }
@@ -476,7 +483,8 @@ const handleWorktree: CommandHandler = async (ctx, args) => {
         if (!subArgs) {
           await ctx.client.createPost(
             `❌ Usage: ${ctx.formatter.formatCode('!worktree switch <branch>')}`,
-            ctx.threadId
+            ctx.threadId,
+            { status: 'error' }
           );
           return { handled: true };
         }
@@ -514,7 +522,8 @@ const handleWorktree: CommandHandler = async (ctx, args) => {
         if (!subArgs) {
           await ctx.client.createPost(
             `❌ Usage: ${ctx.formatter.formatCode('!worktree remove <branch>')}`,
-            ctx.threadId
+            ctx.threadId,
+            { status: 'error' }
           );
           return { handled: true };
         }
@@ -586,7 +595,8 @@ const handlePlugin: CommandHandler = async (ctx, args) => {
       if (!pluginName) {
         await ctx.client.createPost(
           `❌ Usage: ${ctx.formatter.formatCode('!plugin install <plugin-name>')}`,
-          ctx.threadId
+          ctx.threadId,
+          { status: 'error' }
         );
       } else {
         await ctx.sessionManager.pluginInstall(ctx.threadId, pluginName, ctx.username);
@@ -596,7 +606,8 @@ const handlePlugin: CommandHandler = async (ctx, args) => {
       if (!pluginName) {
         await ctx.client.createPost(
           `❌ Usage: ${ctx.formatter.formatCode('!plugin uninstall <plugin-name>')}`,
-          ctx.threadId
+          ctx.threadId,
+          { status: 'error' }
         );
       } else {
         await ctx.sessionManager.pluginUninstall(ctx.threadId, pluginName, ctx.username);
@@ -605,7 +616,8 @@ const handlePlugin: CommandHandler = async (ctx, args) => {
     default:
       await ctx.client.createPost(
         `❌ Unknown subcommand: ${ctx.formatter.formatCode(subcommand)}. Use ${ctx.formatter.formatCode('list')}, ${ctx.formatter.formatCode('install')}, or ${ctx.formatter.formatCode('uninstall')}.`,
-        ctx.threadId
+        ctx.threadId,
+        { status: 'error' }
       );
   }
   return { handled: true };

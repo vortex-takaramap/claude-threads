@@ -206,6 +206,47 @@ describe('SlackClient pure helpers', () => {
 });
 
 describe('SlackClient API methods', () => {
+  it('omits icon_emoji without icons for every status', async () => {
+    fetchResponder = () => ok({ ts: '1.1', channel: 'C123', message: { text: 'hi' } });
+    for (const status of [undefined, 'normal', 'work', 'ask', 'error'] as const) {
+      await makeClient().createPost('hi', '999.0001', { status });
+      expect(fetchCalls.at(-1)?.body).toEqual({
+        channel: 'C123', text: 'hi', thread_ts: '999.0001',
+        unfurl_links: true, unfurl_media: true,
+      });
+    }
+  });
+
+  it('selects and normalizes each status icon, defaulting to normal', async () => {
+    fetchResponder = () => ok({ ts: '1.1', channel: 'C123', message: { text: 'hi' } });
+    const icons = { normal: 'reply', work: ':working:', ask: 'question', error: ':failed:' };
+    const client = makeClient({ icons });
+    for (const status of ['normal', 'work', 'ask', 'error'] as const) {
+      await client.createPost('hi', undefined, { status });
+      expect(fetchCalls.at(-1)?.body).toHaveProperty('icon_emoji', ':' + icons[status].replace(/:/g, '') + ':');
+    }
+    await client.createPost('hi');
+    expect(fetchCalls.at(-1)?.body).toHaveProperty('icon_emoji', ':reply:');
+    await makeClient({ icons: { work: 'working' } }).createPost('hi', undefined, { status: 'ask' });
+    expect(fetchCalls.at(-1)?.body).not.toHaveProperty('icon_emoji');
+    await client.updatePost('1.1', 'updated', { status: 'error' });
+    expect(fetchCalls.at(-1)?.body).not.toHaveProperty('icon_emoji');
+  });
+
+  it('forwards interactive status to chat.postMessage', async () => {
+    fetchResponder = () => ok({ ts: '1.1', channel: 'C123', message: { text: 'Choose' } });
+    await makeClient({ icons: { ask: 'question' } }).createInteractivePost('Choose', ['+1'], undefined, undefined, { status: 'ask' });
+    const call = fetchCalls.find(call => call.url.endsWith('/chat.postMessage'));
+    expect(call?.body).toHaveProperty('icon_emoji', ':question:');
+  });
+
+  it('rejects invalid icon settings', () => {
+    for (const emoji of ['', 'UPPER', ':broken', 'broken:', 'two words', '🙂']) {
+      expect(() => makeClient({ icons: { normal: emoji } })).toThrow('Invalid icons.normal');
+    }
+    expect(() => makeClient({ icons: { normal: "valid_+'-" } })).not.toThrow();
+  });
+
   it('createPost calls chat.postMessage with channel + thread + unfurl flags', async () => {
     fetchResponder = () =>
       ok({ ts: '1000.0001', channel: 'C123', message: { text: 'hi' } });
