@@ -53,6 +53,8 @@ export interface TransformContext {
   taskTracker: TaskTracker;
   /** Whether to include detailed previews */
   detailed?: boolean;
+  /** Tool names to hide from the thread tool log (config `hiddenTools`) */
+  hiddenTools?: readonly string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -163,6 +165,7 @@ function transformAssistant(
         const result = toolFormatterRegistry.format(block.name, block.input || {}, {
           formatter: ctx.formatter,
           detailed: ctx.detailed ?? true,
+          hiddenTools: ctx.hiddenTools,
           worktreeInfo: ctx.worktreeInfo,
         });
         if (result.display && !result.hidden) {
@@ -187,7 +190,7 @@ function transformAssistant(
         `💭 ${ctx.formatter.formatItalic(preview)}`
       );
       textBuffer.push(formatted);
-    } else if (block.type === 'server_tool_use' && block.name) {
+    } else if (block.type === 'server_tool_use' && block.name && !ctx.hiddenTools?.includes(block.name)) {
       // Server-managed tools (e.g., web search) - treat as tool output
       flushTextBuffer();
       const inputStr = block.input ? JSON.stringify(block.input).substring(0, 50) : '';
@@ -376,6 +379,7 @@ function transformToolUse(
   const result = toolFormatterRegistry.format(tool.name, tool.input || {}, {
     formatter: ctx.formatter,
     detailed: ctx.detailed ?? true,
+    hiddenTools: ctx.hiddenTools,
     worktreeInfo: ctx.worktreeInfo,
   });
 

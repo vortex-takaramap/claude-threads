@@ -523,6 +523,8 @@ function createMessageManager(
     },
     // Tunable streaming cadence (ResolvedLimits.flushDelayMs → SessionConfig).
     flushDelayMs: ctx.config.flushDelayMs,
+    // Tools hidden from the thread tool log (Config.hiddenTools).
+    hiddenTools: ctx.config.hiddenTools,
   });
 
   // Subscribe to events from MessageManager

@@ -82,6 +82,12 @@ export class ToolFormatterRegistry implements ToolFormatterRegistryInterface {
     input: ToolInput,
     options: ToolFormatOptions
   ): ToolFormatResult {
+    // Operator-configured hidden tools (config `hiddenTools`): no display line,
+    // and `hidden` keeps the start time unrecorded so no result line follows.
+    if (options.hiddenTools?.includes(toolName)) {
+      return { display: null, hidden: true };
+    }
+
     const formatter = this.findFormatter(toolName);
 
     if (formatter) {

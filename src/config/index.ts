@@ -43,6 +43,7 @@ export {
   resolveWatchesEnabled,
   resolveAuditLogEnabled,
   resolveBugReportsEnabled,
+  resolveHiddenTools,
   LIMITS_DEFAULTS,
   resolveLimits,
   resolvePermissionMode,

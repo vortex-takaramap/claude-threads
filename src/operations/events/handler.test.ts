@@ -715,3 +715,80 @@ describe('handleEventPostProcessing', () => {
     });
   });
 });
+
+describe('context usage accuracy (assistant usage, not turn sum)', () => {
+  let platform: PlatformClient;
+  let session: Session;
+  let ctx: SessionContext;
+
+  const assistant = (usage: Record<string, number>, extra: Record<string, unknown> = {}) => ({
+    type: 'assistant' as const,
+    message: { content: [{ type: 'text', text: 'x' }], usage },
+    ...extra,
+  });
+  const modelUsageEntry = (contextWindow: number) => ({
+    inputTokens: 100, outputTokens: 50, cacheReadInputTokens: 1000,
+    cacheCreationInputTokens: 0, contextWindow, costUSD: 1,
+  });
+  const result = (modelUsage: Record<string, object>) => ({
+    type: 'result' as const,
+    total_cost_usd: 1,
+    // Sum over all API calls in the turn (what the CLI reports)
+    usage: { input_tokens: 900, cache_creation_input_tokens: 0, cache_read_input_tokens: 899_000, output_tokens: 5 },
+    modelUsage,
+  });
+
+  beforeEach(() => {
+    platform = createMockPlatform();
+    session = createTestSession(platform);
+    ctx = createSessionContext();
+    (ctx.state.sessions as Map<string, Session>).set(session.sessionId, session);
+  });
+
+  test('numerator is the latest assistant call, not the turn total', () => {
+    handleEventPreProcessing(session, assistant({ input_tokens: 10, cache_creation_input_tokens: 0, cache_read_input_tokens: 20_000 }), ctx);
+    handleEventPreProcessing(session, assistant({ input_tokens: 5, cache_creation_input_tokens: 100, cache_read_input_tokens: 45_000 }), ctx);
+    handleEventPostProcessing(session, result({ 'claude-opus-5': modelUsageEntry(1_000_000) }), ctx);
+
+    expect(session.usageStats?.contextTokens).toBe(5 + 100 + 45_000);
+  });
+
+  test('sidechain (subagent) assistant events are ignored', () => {
+    handleEventPreProcessing(session, assistant({ input_tokens: 1, cache_read_input_tokens: 30_000 }), ctx);
+    handleEventPreProcessing(
+      session,
+      assistant({ input_tokens: 1, cache_read_input_tokens: 150_000 }, { parent_tool_use_id: 'toolu_sub' }),
+      ctx,
+    );
+    handleEventPostProcessing(session, result({ 'claude-opus-5': modelUsageEntry(1_000_000) }), ctx);
+
+    expect(session.usageStats?.contextTokens).toBe(30_001);
+  });
+
+  test('falls back to result.usage when no assistant usage was seen', () => {
+    handleEventPostProcessing(session, result({ 'claude-opus-5': modelUsageEntry(1_000_000) }), ctx);
+    expect(session.usageStats?.contextTokens).toBe(899_900);
+  });
+
+  test('SDK contextWindow wins over the [1m] fallback', () => {
+    session.currentModel = 'claude-opus-5[1m]';
+    handleEventPostProcessing(session, result({ 'claude-opus-5[1m]': modelUsageEntry(500_000) }), ctx);
+    expect(session.usageStats?.contextWindowSize).toBe(500_000);
+  });
+
+  test('missing contextWindow: [1m] suffix gives 1M', () => {
+    session.currentModel = 'claude-opus-5[1m]';
+    handleEventPostProcessing(session, result({ 'claude-opus-5[1m]': modelUsageEntry(0) }), ctx);
+    expect(session.usageStats?.contextWindowSize).toBe(1_000_000);
+  });
+
+  test('missing contextWindow: no suffix gives 200k (highest-cost path too)', () => {
+    handleEventPostProcessing(session, result({ 'claude-sonnet-4-5': modelUsageEntry(0) }), ctx);
+    expect(session.usageStats?.contextWindowSize).toBe(200_000);
+  });
+
+  test('display name handles the claude-opus-5[1m] form', () => {
+    handleEventPostProcessing(session, result({ 'claude-opus-5[1m]': modelUsageEntry(1_000_000) }), ctx);
+    expect(session.usageStats?.modelDisplayName).toBe('Opus 5');
+  });
+});

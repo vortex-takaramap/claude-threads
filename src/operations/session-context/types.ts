@@ -72,6 +72,8 @@ export interface SessionConfig {
   permissionTimeoutMs?: number;
   /** Streaming flush cadence in ms (default: 500). Lower = snappier updates. */
   flushDelayMs?: number;
+  /** Tool names left out of the thread tool log (config `hiddenTools`). Default: none. */
+  hiddenTools?: readonly string[];
 }
 
 // =============================================================================

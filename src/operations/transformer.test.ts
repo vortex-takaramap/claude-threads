@@ -1023,3 +1023,53 @@ describe('Event Transformer - round-3 review fixes', () => {
     expect(taskOps[0].tasks).toEqual([]);
   });
 });
+
+describe('Event Transformer hiddenTools', () => {
+  const mkCtx = (hiddenTools?: readonly string[]): TransformContext => ({
+    sessionId: 'test-session',
+    formatter: mockFormatter,
+    toolStartTimes: new Map(),
+    taskTracker: new TaskTracker(),
+    detailed: true,
+    hiddenTools,
+  });
+  const assistantWith = (content: unknown[]): ClaudeEvent => ({
+    type: 'assistant',
+    message: { content },
+  } as ClaudeEvent);
+  const toolUse = (name: string, id = 'toolu_1') => ({ type: 'tool_use', id, name, input: {} });
+  const serverToolUse = (name: string) => ({ type: 'server_tool_use', id: 'srv_1', name, input: { query: 'q' } });
+
+  it('shows tool_use and server_tool_use when hiddenTools is unset', () => {
+    const ctx = mkCtx();
+    const ops = transformEvent(assistantWith([toolUse('mcp__srv__list_things'), serverToolUse('web_search')]), ctx);
+    const text = JSON.stringify(ops);
+    expect(text).toContain('list_things');
+    expect(text).toContain('web_search');
+    expect(ctx.toolStartTimes.has('toolu_1')).toBe(true);
+  });
+
+  it('hides listed tool_use blocks and records no start time (no result line)', () => {
+    const ctx = mkCtx(['mcp__srv__list_things']);
+    const ops = transformEvent(assistantWith([toolUse('mcp__srv__list_things')]), ctx);
+    expect(ops).toHaveLength(0);
+    expect(ctx.toolStartTimes.has('toolu_1')).toBe(false);
+  });
+
+  it('hides listed server_tool_use blocks', () => {
+    const ctx = mkCtx(['web_search']);
+    const ops = transformEvent(assistantWith([serverToolUse('web_search')]), ctx);
+    expect(ops).toHaveLength(0);
+  });
+
+  it('still shows tools and server tools that are not listed', () => {
+    const ctx = mkCtx(['web_search', 'mcp__srv__list_things']);
+    const ops = transformEvent(
+      assistantWith([toolUse('mcp__srv__create_thing'), serverToolUse('web_fetch')]),
+      ctx,
+    );
+    const text = JSON.stringify(ops);
+    expect(text).toContain('create_thing');
+    expect(text).toContain('web_fetch');
+  });
+});

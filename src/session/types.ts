@@ -422,6 +422,14 @@ export interface Session {
    */
   currentModel?: string;
   /**
+   * Context size (input + cache creation + cache read tokens) of the most
+   * recent main-thread assistant API call. `result.usage` sums every API call
+   * in the turn, which overstates the live context by up to 10x on tool-heavy
+   * turns; this is the real number. Sidechain (subagent) calls are excluded.
+   * In-memory only.
+   */
+  lastAssistantContextTokens?: number;
+  /**
    * "name (status), ..." of the MCP servers the CLI reported in its last
    * system/init event; used to log the set once per change. In-memory only.
    */

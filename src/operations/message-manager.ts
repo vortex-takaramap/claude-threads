@@ -133,6 +133,8 @@ export interface MessageManagerOptions {
    * ResolvedLimits.flushDelayMs.
    */
   flushDelayMs?: number;
+  /** Tool names left out of the thread tool log (Config.hiddenTools). */
+  hiddenTools?: readonly string[];
 }
 
 /**
@@ -199,6 +201,7 @@ export class MessageManager {
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private static readonly DEFAULT_FLUSH_DELAY_MS = 500;
   private readonly flushDelayMs: number;
+  private readonly hiddenTools: readonly string[] | undefined;
 
   /**
    * Event emitter for MessageManager events.
@@ -245,6 +248,7 @@ export class MessageManager {
     this.startTypingCallback = options.startTyping;
     this.emitSessionUpdateCallback = options.emitSessionUpdate;
     this.flushDelayMs = options.flushDelayMs ?? MessageManager.DEFAULT_FLUSH_DELAY_MS;
+    this.hiddenTools = options.hiddenTools;
 
     // Create event emitter
     this.events = createMessageManagerEvents();
@@ -325,6 +329,7 @@ export class MessageManager {
       toolStartTimes: this.toolStartTimes,
       taskTracker: this.taskTracker,
       detailed: true,
+      hiddenTools: this.hiddenTools,
       worktreeInfo: this.worktreePath && this.worktreeBranch
         ? { path: this.worktreePath, branch: this.worktreeBranch }
         : undefined,

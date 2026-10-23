@@ -14,6 +14,7 @@ import {
   resolveRoutinesEnabled,
   resolveWatchesEnabled,
   resolveBugReportsEnabled,
+  resolveHiddenTools,
   resolveTranscriptionEnabled,
   isOverheadVisibility,
   OVERHEAD_VISIBILITY_VALUES,
@@ -686,7 +687,8 @@ async function startWithoutDaemon() {
     config.respondOnlyWhenMentioned,  // Quiet-mode default for new sessions (#402)
     config.userAttribution,  // Per-message [@username]: attribution (default on; only applied once a thread has >1 participant)
     bugReportsEnabled,  // `!bug` files publicly; false removes the whole path
-    config.usage  // !usage output options (emails off unless turned on)
+    config.usage,  // !usage output options (emails off unless turned on)
+    resolveHiddenTools(config.hiddenTools)  // Tools left out of the thread's tool log
   );
 
   // Set sticky message customization from config

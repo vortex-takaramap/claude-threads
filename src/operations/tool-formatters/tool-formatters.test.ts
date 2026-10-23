@@ -1240,3 +1240,43 @@ describe('Wrapper Functions', () => {
     });
   });
 });
+
+describe('ToolFormatterRegistry hiddenTools', () => {
+  const opts = (hiddenTools?: readonly string[]) => ({ formatter: mockFormatter, hiddenTools });
+  let registry: ToolFormatterRegistry;
+
+  beforeEach(() => {
+    registry = new ToolFormatterRegistry();
+    registry.register(fileToolsFormatter);
+  });
+
+  it('shows tools as usual when hiddenTools is unset or empty', () => {
+    for (const hiddenTools of [undefined, []]) {
+      const read = registry.format('Read', { file_path: '/a/b.ts' }, opts(hiddenTools));
+      expect(read.hidden).toBeFalsy();
+      expect(read.display).toContain('Read');
+      const mcp = registry.format('mcp__srv__do_thing', {}, opts(hiddenTools));
+      expect(mcp.hidden).toBeFalsy();
+      expect(mcp.display).toContain('do_thing');
+    }
+  });
+
+  it('hides tools listed in hiddenTools (registered, MCP and unknown)', () => {
+    const hiddenTools = ['Read', 'mcp__srv__list_things', 'SomeUnknownTool'];
+    for (const name of hiddenTools) {
+      const result = registry.format(name, { file_path: '/a/b.ts' }, opts(hiddenTools));
+      expect(result.hidden).toBe(true);
+      expect(result.display).toBeNull();
+    }
+  });
+
+  it('keeps showing tools that are not listed', () => {
+    const hiddenTools = ['Read'];
+    const edit = registry.format('Edit', { file_path: '/a/b.ts', old_string: 'a', new_string: 'b' }, opts(hiddenTools));
+    expect(edit.hidden).toBeFalsy();
+    expect(edit.display).toContain('Edit');
+    const mcp = registry.format('mcp__srv__create_thing', {}, opts(hiddenTools));
+    expect(mcp.hidden).toBeFalsy();
+    expect(mcp.display).toContain('create_thing');
+  });
+});

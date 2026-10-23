@@ -55,6 +55,7 @@ platforms:
 | `userAttribution` | Prefix each user turn sent to Claude with the sender's `[@username]:` so Claude can tell who is speaking in multi-user threads. Only applied once a thread has more than one participant (after `!invite`); solo threads are left untouched. Set `false` to disable. Applies to new sessions. | `true` |
 | `keepAlive` | Prevent system sleep while sessions are active | `true` |
 | `bugReports` | Whether `!bug` may file a report. ⚠️ A bug report leaves your infrastructure: attached screenshots are uploaded to a public anonymous file host, and the report body — session context plus recent daemon log lines — is filed as an issue on the project's public GitHub repository, behind best-effort redaction. Claude can also invoke `!bug` itself. Set `false` and the whole path is removed: the command is refused, Claude cannot invoke it either, the 🐛 error reaction does nothing, the approval that would file the issue is refused, and `!bug` disappears from `!help`. **Fails closed** — a malformed value disables it rather than defaulting to on. | `true` |
+| `hiddenTools` | Tool names to leave out of the thread's tool log (see [Hidden tools](#hidden-tools-hiddentools)) | none (all shown) |
 | `limits` | Resource limits and timeouts (see below) | see below |
 | `threadLogs` | Thread logging (see below) | enabled |
 | `stickyMessage` | Sticky message text customization (see below) | none |
@@ -90,6 +91,26 @@ limits:
 | `flushDelayMs` | Delay before flushing batched output to the platform. Lower is snappier with more API calls; higher posts less often with coarser streaming. | `500` |
 
 The legacy env vars `MAX_SESSIONS` and `SESSION_TIMEOUT_MS` still work as fallbacks when `limits.maxSessions` / `limits.sessionTimeoutMinutes` are unset. See [Environment Variables](#environment-variables).
+
+### Hidden tools (`hiddenTools`)
+
+By default every tool call is posted to the thread as a one-line log (`● Read`, `🔌 tool (server)`, `🌐 web_search`) followed by a result line. On turns that do a lot of read-only lookups this can bury the actual answer. `hiddenTools` is a top-level list of tool names to leave out of that log.
+
+```yaml
+hiddenTools:
+  - ToolSearch
+  - Read
+  - Grep
+  - web_search            # server-side tools are matched by name too
+  - mcp__myserver__list_items
+```
+
+- Names are matched **exactly** against the tool name Claude reports. MCP tools are `mcp__<server>__<tool>`; there are no wildcards.
+- A hidden tool posts no start line and no result line. Server-side tool lines (`🌐 …`, e.g. `web_search`) are hidden by the same list.
+- Unset or empty keeps the default: every tool is shown.
+- Only the thread display changes. The audit log (`auditLog`) and permission prompts still see every tool call.
+- A value that is not a list of strings logs a warning at startup and is ignored (all tools stay visible).
+- The setting is read at startup, applies to every platform, and needs a restart to change.
 
 ### Thread Logs (`threadLogs`)
 

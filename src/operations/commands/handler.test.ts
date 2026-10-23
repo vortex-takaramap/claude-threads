@@ -1672,3 +1672,37 @@ describe('watch commands', () => {
     expect(calls.some((m: string) => m.includes('Usage'))).toBe(true);
   });
 });
+
+describe('buildSessionHeaderStatusBar context display', () => {
+  const statsWith = (contextTokens: number, contextWindowSize: number) => ({
+    primaryModel: 'claude-opus-5',
+    modelDisplayName: 'Opus 5',
+    contextWindowSize,
+    contextTokens,
+    totalTokensUsed: 0,
+    totalCostUSD: 1,
+    lastUpdated: new Date(),
+    modelUsage: {},
+  });
+
+  async function statusBar(contextTokens: number, contextWindowSize: number): Promise<string> {
+    const session = createMockSession({ usageStats: statsWith(contextTokens, contextWindowSize) });
+    const ctx = createMockSessionContext(new Map([[session.sessionId, session]]));
+    return commands.buildSessionHeaderStatusBar(session, ctx);
+  }
+
+  it('shows the window size after the percentage (1M)', async () => {
+    expect(await statusBar(40_000, 1_000_000)).toContain('4% / 1M');
+  });
+
+  it('shows 200k windows', async () => {
+    expect(await statusBar(100_000, 200_000)).toContain('50% / 200k');
+  });
+
+  it('does not divide by zero when the window size is 0', async () => {
+    const bar = await statusBar(1234, 0);
+    expect(bar).toContain('0% / ?');
+    expect(bar).not.toContain('NaN');
+    expect(bar).not.toContain('Infinity');
+  });
+});

@@ -347,7 +347,20 @@ export function handleEventPreProcessing(
   if (event.type === 'assistant' && !isSidechainEvent(event)) {
     const msg = event.message as {
       content?: Array<{ type: string; name?: string }>;
+      usage?: {
+        input_tokens?: number;
+        cache_creation_input_tokens?: number;
+        cache_read_input_tokens?: number;
+      };
     };
+    // Remember the live context size of this API call (see
+    // Session.lastAssistantContextTokens for why result.usage is not used).
+    if (msg?.usage) {
+      session.lastAssistantContextTokens =
+        (msg.usage.input_tokens || 0) +
+        (msg.usage.cache_creation_input_tokens || 0) +
+        (msg.usage.cache_read_input_tokens || 0);
+    }
     if (Array.isArray(msg?.content)) {
       for (const block of msg.content) {
         if (block.type === 'tool_use' && block.name) {
@@ -616,7 +629,8 @@ function getModelDisplayName(modelId: string): string {
   // Minor is capped at 2 digits so the optional group can't swallow an
   // 8-digit date suffix (claude-sonnet-4-20250514 must be "Sonnet 4",
   // never "Sonnet 4.20250514").
-  const modern = modelId.match(/^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$/);
+  // An optional trailing "[1m]"-style suffix (1M-context variant) is ignored.
+  const modern = modelId.match(/^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?(?:\[[^\]]*\])?$/);
   if (modern) {
     const family = modern[1].charAt(0).toUpperCase() + modern[1].slice(1);
     return modern[3] ? `${family} ${modern[2]}.${modern[3]}` : `${family} ${modern[2]}`;
@@ -627,6 +641,17 @@ function getModelDisplayName(modelId: string): string {
   if (modelId.includes('haiku')) return 'Haiku';
   const match = modelId.match(/claude-(\w+)/);
   return match ? match[1].charAt(0).toUpperCase() + match[1].slice(1) : modelId;
+}
+
+/**
+ * Fallback context window when the SDK's modelUsage carries no usable
+ * contextWindow: ids with a "[1m]" suffix are 1M-context variants, everything
+ * else is 200k. The SDK value always wins; this is deliberately not a
+ * model-name table (those go stale).
+ */
+function getContextWindowFallback(modelId: string | undefined): number {
+  if (modelId && /\[1m\]/i.test(modelId)) return 1_000_000;
+  return 200_000;
 }
 
 /**
@@ -644,7 +669,7 @@ function updateUsageStats(
   // Find the primary model (highest cost, usually the main model)
   let primaryModel = '';
   let highestCost = 0;
-  let contextWindowSize = 200000; // Default
+  let contextWindowSize = 0; // Resolved below: SDK value, else getContextWindowFallback
 
   const modelUsage: Record<string, ModelTokenUsage> = {};
   let totalTokensUsed = 0;
@@ -667,7 +692,9 @@ function updateUsageStats(
     if (usage.costUSD > highestCost) {
       highestCost = usage.costUSD;
       primaryModel = modelId;
-      contextWindowSize = usage.contextWindow;
+      contextWindowSize = usage.contextWindow > 0
+        ? usage.contextWindow
+        : getContextWindowFallback(modelId);
     }
   }
 
@@ -676,14 +703,24 @@ function updateUsageStats(
   // cumulative spend, but the header must show what the session runs NOW.
   if (session.currentModel && result.modelUsage[session.currentModel]) {
     primaryModel = session.currentModel;
-    contextWindowSize = result.modelUsage[session.currentModel].contextWindow;
+    const currentWindow = result.modelUsage[session.currentModel].contextWindow;
+    contextWindowSize = currentWindow > 0
+      ? currentWindow
+      : getContextWindowFallback(session.currentModel);
+  }
+  if (contextWindowSize <= 0) {
+    contextWindowSize = getContextWindowFallback(primaryModel);
   }
 
   // Calculate context tokens from per-request usage (accurate)
   // Falls back to primary model's cumulative tokens if usage not available
   let contextTokens = 0;
-  if (result.usage) {
-    // Per-request usage: actual tokens in current context window
+  if (typeof session.lastAssistantContextTokens === 'number' && session.lastAssistantContextTokens > 0) {
+    // Latest main-thread API call: the real current context (result.usage is
+    // the sum over every API call in the turn and overstates it).
+    contextTokens = session.lastAssistantContextTokens;
+  } else if (result.usage) {
+    // No assistant usage seen: fall back to the turn's summed usage
     contextTokens = result.usage.input_tokens +
       result.usage.cache_creation_input_tokens +
       result.usage.cache_read_input_tokens;

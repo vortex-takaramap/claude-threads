@@ -193,6 +193,15 @@ export async function restartClaudeSession(
  * @param percent - Percentage of context used (0-100)
  * @returns A visual bar like "▓▓▓▓░░░░░░" with color indication
  */
+/**
+ * Format a context window size for display: 1000000 -> "1M", 200000 -> "200k".
+ */
+function formatContextWindowLabel(size: number): string {
+  if (!size || size <= 0) return '?';
+  if (size >= 1_000_000) return `${Math.round(size / 100_000) / 10}M`.replace('.0M', 'M');
+  return `${Math.round(size / 1000)}k`;
+}
+
 function formatContextBar(percent: number): string {
   const totalBlocks = 10;
   // Clamp filledBlocks to [0, totalBlocks] to handle >100% usage
@@ -1000,8 +1009,12 @@ export async function buildSessionHeaderStatusBar(
   if (session.usageStats) {
     const stats = session.usageStats;
     items.push(formatter.formatCode(`🤖 ${stats.modelDisplayName}`));
-    const contextPercent = Math.round((stats.contextTokens / stats.contextWindowSize) * 100);
-    items.push(formatter.formatCode(`${formatContextBar(contextPercent)} ${contextPercent}%`));
+    const contextPercent = stats.contextWindowSize > 0
+      ? Math.round((stats.contextTokens / stats.contextWindowSize) * 100)
+      : 0;
+    items.push(formatter.formatCode(
+      `${formatContextBar(contextPercent)} ${contextPercent}% / ${formatContextWindowLabel(stats.contextWindowSize)}`
+    ));
     items.push(formatter.formatCode(`💰 $${stats.totalCostUSD.toFixed(2)}`));
   }
 

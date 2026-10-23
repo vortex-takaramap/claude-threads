@@ -274,6 +274,34 @@ export function resolveBugReportsEnabled(value: unknown, fieldPath?: string): bo
 }
 
 /**
+ * Normalize the top-level `hiddenTools` field: tool names whose execution
+ * log lines (and their result lines) are not posted to the thread.
+ *
+ * Names are matched exactly against the tool name Claude reports (e.g.
+ * `Read`, `mcp__server__tool`, or a server-side tool such as `web_search`).
+ * Absent or empty means every tool is shown. Malformed values warn and are
+ * ignored (everything stays visible) — hiding is cosmetic, so falling back
+ * to "show" is the harmless direction.
+ */
+export function resolveHiddenTools(value: unknown, fieldPath?: string): string[] {
+  const path = fieldPath ?? 'hiddenTools';
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) {
+    console.warn(`Invalid ${path} config: expected an array of tool names, got ${JSON.stringify(value)} — ignoring (all tools stay visible)`);
+    return [];
+  }
+  const names: string[] = [];
+  for (const entry of value) {
+    if (typeof entry === 'string' && entry.trim() !== '') {
+      names.push(entry.trim());
+    } else {
+      console.warn(`Invalid ${path} entry ${JSON.stringify(entry)}: expected a non-empty string — skipped`);
+    }
+  }
+  return names;
+}
+
+/**
  * Thread logging configuration
  */
 // =============================================================================
@@ -615,6 +643,14 @@ export interface Config {
    * where. Fails closed on a malformed value.
    */
   bugReports?: boolean;
+  /**
+   * Tool names to leave out of the thread's tool execution log (the "● Read",
+   * "🔌 tool (server)" lines and their result lines). Exact names as Claude
+   * reports them, including MCP tools (`mcp__<server>__<tool>`) and
+   * server-side tools (`web_search`). Unset or empty shows everything.
+   * The audit log is unaffected.
+   */
+  hiddenTools?: string[];
   autoUpdate?: Partial<AutoUpdateConfig>; // Optional auto-update configuration
   threadLogs?: ThreadLogsConfig; // Optional thread logging configuration
   limits?: LimitsConfig; // Optional resource limits and timeouts

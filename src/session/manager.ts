@@ -107,6 +107,7 @@ export class SessionManager extends EventEmitter {
   private threadLogsEnabled: boolean;
   /** Top-level `bugReports`; false removes the whole `!bug` path. */
   private bugReportsEnabled: boolean;
+  private hiddenTools: readonly string[];
   private usageShowEmails: boolean;
   private threadLogsRetentionDays: number;
   // Resolved limits configuration
@@ -191,7 +192,8 @@ export class SessionManager extends EventEmitter {
     respondOnlyWhenMentioned = false,
     userAttribution = true,
     bugReportsEnabled = true,
-    usage?: UsageConfig
+    usage?: UsageConfig,
+    hiddenTools: readonly string[] = []
   ) {
     super();
     this.workingDir = workingDir;
@@ -204,6 +206,7 @@ export class SessionManager extends EventEmitter {
     this.respondOnlyWhenMentioned = respondOnlyWhenMentioned;
     this.userAttribution = userAttribution;
     this.bugReportsEnabled = bugReportsEnabled;
+    this.hiddenTools = hiddenTools;
     this.threadLogsEnabled = threadLogsEnabled;
     this.threadLogsRetentionDays = threadLogsRetentionDays;
     this.limits = resolveLimits(limits);
@@ -419,6 +422,7 @@ export class SessionManager extends EventEmitter {
       permissionTimeoutMs: this.limits.permissionTimeoutSeconds * 1000,
       flushDelayMs: this.limits.flushDelayMs,
       bugReportsEnabled: this.bugReportsEnabled,
+      hiddenTools: this.hiddenTools,
     };
 
     const state: SessionState = {
