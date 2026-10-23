@@ -2921,3 +2921,36 @@ describe('isClaudeThreadsStatusPost (#491)', () => {
     expect(performance.now() - started).toBeLessThan(250);
   }, 30_000);
 });
+
+describe('Slack DM thread routing', () => {
+  test('two unmentioned roots start separate sessions and reply reaches its original session despite !mentions', async () => {
+    const client = Object.assign(createMockPlatform(), { isDirectMessage: true });
+    const session = createMockSessionManager();
+    const options = { platformId: 'desk--dm-D1' };
+    const user = { id: 'U-ALICE', username: 'allowed-user', displayName: 'Alice' };
+    const post = (id: string, rootId = ''): PlatformPost => ({
+      id, rootId, message: 'hello', userId: user.id, platformId: options.platformId, channelId: 'D1', createAt: 1,
+    });
+    await handleMessage(client, session, post('1.1'), user, options);
+    await handleMessage(client, session, post('2.2'), user, options);
+    expect(session.startSession).toHaveBeenCalledTimes(2);
+    expect((session.startSession as ReturnType<typeof mock>).mock.calls.map((call) => call[2])).toEqual(['1.1', '2.2']);
+    (session.registry.findByThreadId as ReturnType<typeof mock>).mockReturnValue({ respondOnlyWhenMentioned: true });
+    await handleMessage(client, session, post('3.3', '1.1'), user, options);
+    expect(session.sendFollowUp).toHaveBeenCalled();
+    expect((session.sendFollowUp as ReturnType<typeof mock>).mock.calls[0][0]).toBe('1.1');
+    expect(session.evaluateWatches).not.toHaveBeenCalled();
+  });
+
+  test('paused DM resumes without mention despite persisted !mentions', async () => {
+    const client = Object.assign(createMockPlatform(), { isDirectMessage: true });
+    const session = createMockSessionManager();
+    const persisted = { startedBy: 'allowed-user', sessionAllowedUsers: ['allowed-user'], respondOnlyWhenMentioned: true };
+    (session.registry.getPersistedByThreadId as ReturnType<typeof mock>).mockReturnValue(persisted);
+    (session.getPersistedSession as ReturnType<typeof mock>).mockReturnValue(persisted);
+    await handleMessage(client, session, {
+      id: '2.2', rootId: '1.1', message: 'continue', userId: 'U1', channelId: 'D1', platformId: 'desk--dm-D1', createAt: 1,
+    }, { id: 'U1', username: 'allowed-user', displayName: 'Alice' }, { platformId: 'desk--dm-D1' });
+    expect(session.resumePausedSession).toHaveBeenCalled();
+  });
+});

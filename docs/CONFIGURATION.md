@@ -212,7 +212,9 @@ What happens: every `audio/*` attachment (or a file with an audio extension when
 | `appToken` | Yes | App-Level Token for Socket Mode (`xapp-...`) |
 | `channelId` | Yes | Channel ID (e.g., `C0123456789`) |
 | `botName` | No | Mention name (default: `claude`) |
-| `allowedUsers` | No | List of Slack usernames |
+| `allowedUsers` | No | List of Slack usernames (exact match; empty allows everyone) |
+| `directMessages` | No | Accept 1:1 DMs from allowed users. Default `false`. Each top-level DM starts a session; replies continue that thread. Mentions are never required in DMs, including after `!mentions`. |
+| `directMessagesDeniedMessage` | No | Optional text sent once per DM channel per process to an unauthorized user; omitted means silence. Restarting may send it again. |
 | `permissionMode` | No | How tool-use is gated: `default` / `auto` / `bypass` (default: `default`). See [Permission Modes](#permission-modes). |
 | `skipPermissions` | No | **Deprecated.** Use `permissionMode`. `true` maps to `bypass`, `false` to `default`. `permissionMode` wins when both are set. |
 | `outboundFiles` | No | `send_file` settings: `{ enabled, maxBytes }` (defaults: enabled `true`, `maxBytes` 100 MB) |
@@ -224,6 +226,10 @@ What happens: every `audio/*` attachment (or a file with an audio extension when
 | `ackReaction` | No | Read receipt: react to every accepted message (session start, follow-up, resume) the instant it is accepted, before Claude produces output. `true` uses 👀 (`eyes`), a string names a custom emoji. Persistent, unlike the typing indicator — useful in busy channels and for messages queued behind an in-flight session start. The receipt means *accepted*, not *delivered*: a later failure (capacity limit, Claude not coming up) is still reported by its own post. `!commands` are not acked — they have their own immediate feedback, and neither are messages accepted through the message-approval flow (an authorized user approving a non-participant's message) — there the approval reaction is already the visible signal. Note: in direct channel mode this is one reaction API call per accepted message. Default off. |
 | `reconnectPolicy` | No | What happens when reconnection attempts run out: `retry` (default — log, cool down 60s, reset the counter and keep trying; recovers with no supervisor) or `exit` (leave through the graceful shutdown path and exit non-zero, for `Restart=always` deployments). The bot never stays alive with a dead socket either way. |
 | `auditLog` | No | Append-only audit trail of what the bot executed for this platform — tool calls (incl. subagents), session lifecycle, security-relevant commands, plan approvals. One JSONL stream per platform under `~/.claude-threads/audit/` (override: `CLAUDE_THREADS_AUDIT_DIR`), files `0600`. The bot never deletes it — rotation/retention is the operator's job (logrotate, SIEM ingestion). See [Audit log](#audit-log). Default off. |
+
+Slack DMs require `message.im` events, `im:history` and `im:read` bot scopes, and an enabled App Home Messages tab. The bundled `docs/slack-app-manifest.yaml` includes these settings; reinstall an existing Slack app after adding scopes. DM sessions inherit the desk settings and share its channel memory (`!remember` / `remember_fact`). Routines and watches do not run in DMs.
+
+User-defined stdio MCP servers on Slack receive `SLACK_OPS_SESSION_CHANNEL_ID`, `SLACK_OPS_SESSION_THREAD_TS`, `SLACK_OPS_SESSION_REQUESTER_ID` (empty for unattended runs), and `SLACK_OPS_SESSION_KIND` (`desk`, `im`, `routine`, or `watch`). These values override configured environment values. HTTP MCP servers are unchanged.
 
 ### Direct Channel Mode
 
@@ -280,7 +286,7 @@ Notes for operators:
 
 ### Direct messages (DM)
 
-**Mattermost only.** A Mattermost DM is just a private channel with its own id, so a bot DM conversation is direct channel mode pointed at that id — no separate feature needed. (This recipe does NOT work on Slack: Socket Mode distributes event envelopes across an app's active connections, so a second platform entry sharing the same app credentials can consume and discard events meant for the other entry. Slack DM support needs a single-connection, channel-aware implementation.)
+**Mattermost only.** A Mattermost DM is just a private channel with its own id, so a bot DM conversation is direct channel mode pointed at that id — no separate feature needed. (This recipe does NOT work on Slack: Socket Mode distributes event envelopes across an app's active connections, so a second platform entry sharing the same app credentials can consume and discard events meant for the other entry. For Slack, use `directMessages: true` on the desk entry; it shares the parent Socket Mode connection.)
 
 ```yaml
 platforms:
@@ -317,7 +323,7 @@ Details and caveats:
 - **Multiple entries, one bot account**: the first entry to discover a DM channel owns it — other `directMessages: true` entries stay out, so the bot never double-replies.
 - **Empty `allowedUsers`**: consistent with the rest of the bot, an empty list means *everyone* — combined with `directMessages: true` that is every user on the server who can DM the bot. Leave it empty only on servers you trust.
 - **Renaming a platform entry** strands its persisted DM sessions (as it does any persisted session referencing the old id); they are skipped with a warning.
-- Mattermost only — see the note above for why the multi-connection approach cannot work on Slack.
+- This direct-channel-mode discovery is Mattermost only. Slack uses the thread-based DM behavior described above.
 
 Limitations: the thread-context prompt ("include previous messages?") is skipped — there is no thread history to offer — and the `list_thread` MCP tool cannot resolve the synthetic session id (use `read_channel_history` instead).
 

@@ -785,6 +785,17 @@ describe('SessionManager', () => {
   // byte-level shape, this test fails before the persisted state does.
   // ==========================================================================
   describe('persistSession snapshot (backward compat)', () => {
+    test('persists the optional Slack starter ID for session reconstruction', () => {
+      const saved: Record<string, unknown>[] = [];
+      (manager as any).sessionStore.save = (_id: string, data: Record<string, unknown>) => { saved.push(data); };
+      const session = injectSession(manager, platform as unknown as PlatformClient, 'thread-slack', {
+        startedByUserId: 'U-ALICE',
+        messageManager: { serialize: () => ({}) } as any,
+      });
+      (manager as any).persistSession(session);
+      expect(saved[0].startedByUserId).toBe('U-ALICE');
+    });
+
     test('persists a fully-populated session with the expected field set', () => {
       const savedCalls: Array<{ sessionId: string; data: unknown }> = [];
       // Intercept sessionStore.save to capture the written payload without

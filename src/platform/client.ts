@@ -78,6 +78,8 @@ export interface PlatformClient extends EventEmitter {
    * and to drop persisted DCM sessions after the flag was turned off.
    */
   readonly directChannelMode?: ResolvedDirectChannelMode;
+  /** Slack 1:1 DM: each root starts a session without requiring a mention. */
+  readonly isDirectMessage?: boolean;
 
   /**
    * Configured approvals mode for this platform (unset → per-mode default;

@@ -1089,6 +1089,9 @@ async function startSessionImpl(
     uploadDir: getSessionUploadDir(platformId, actualThreadId),
     outboundFiles: platformMcpConfig.outboundFiles,
     sessionOwnerUsername: username,
+    sessionRequesterId: platform.platformType === 'slack' && !options.unattended
+      ? (await platform.getUserByUsername(username))?.id : undefined,
+    sessionKind: options.unattended ? (/^\[Scheduled routine /.test(options.prompt) ? 'routine' : 'watch') : undefined,
     decisionBridgePath: decisionBridge?.path,
     // Repo memory layer: redirect Claude's native auto-memory into the
     // bot-managed per-(platform, repo) directory. Null disables it entirely.
@@ -1119,6 +1122,7 @@ async function startSessionImpl(
     claudeAccountId: claudeAccount?.id,
     unattended: options.unattended || undefined,
     startedBy: username,
+    startedByUserId: cliOptions.sessionRequesterId,
     startedByDisplayName: displayName,
     startedAt: new Date(),
     lastActivityAt: new Date(),
@@ -1501,6 +1505,9 @@ async function resumeSessionImpl(
     uploadDir: getSessionUploadDir(platformId, state.threadId),
     outboundFiles: platformMcpConfig.outboundFiles,
     sessionOwnerUsername: state.startedBy,
+    sessionRequesterId: platform.platformType === 'slack' && !_resumedUnattended(state)
+      ? state.startedByUserId ?? (await platform.getUserByUsername(state.startedBy))?.id : undefined,
+    sessionKind: _resumedUnattended(state) ? (/^\[Scheduled routine /.test(state.firstPrompt ?? '') ? 'routine' : 'watch') : undefined,
     decisionBridgePath: resumeBridge?.path,
     // Same repo-memory binding as startSession — recomputed, not persisted,
     // so a moved/deleted repo can't strand the session.
@@ -1532,6 +1539,7 @@ async function resumeSessionImpl(
     claudeAccountId: claudeAccount?.id,
     unattended: _resumedUnattended(state) || undefined,
     startedBy: state.startedBy,
+    startedByUserId: cliOptions.sessionRequesterId,
     startedByDisplayName: state.startedByDisplayName,
     startedAt: new Date(state.startedAt),
     lastActivityAt: new Date(),

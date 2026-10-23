@@ -63,6 +63,8 @@ export class SlackClient extends BasePlatformClient {
   readonly approvals?: ApprovalsMode;
   readonly ackReaction?: boolean | string;
 
+  readonly isDirectMessage: boolean;
+  private readonly directMessages: boolean;
   private ws: WebSocket | null = null;
   private botToken: string;
   private appToken: string;
@@ -117,6 +119,8 @@ export class SlackClient extends BasePlatformClient {
   constructor(platformConfig: SlackPlatformConfig, sharedEventSource?: SlackClient) {
     super();
     this.sharedEventSource = sharedEventSource;
+    this.directMessages = platformConfig.directMessages ?? false;
+    this.isDirectMessage = !!platformConfig.memoryPlatformId;
     this.installStateMirror();
     this.platformId = platformConfig.id;
     this.displayName = platformConfig.displayName;
@@ -649,6 +653,7 @@ export class SlackClient extends BasePlatformClient {
     subtype?: string;
     user?: string;
     channel?: string;
+    channel_type?: string;
     ts?: string;
     thread_ts?: string;
     text?: string;
@@ -660,6 +665,12 @@ export class SlackClient extends BasePlatformClient {
     team?: string;
     files?: SlackFile[];
   }): void {
+    if (this.directMessages && !this.sharedEventSource && event.type === 'message' &&
+        event.channel_type === 'im' && event.channel?.startsWith('D') && (!event.subtype || event.subtype === 'file_share') &&
+        !this.isBotAuthored(event)) {
+      this.emit('slack_direct_message', event, this.appId);
+      return;
+    }
     // Shared event source: this socket may carry events for channels owned by
     // registered secondary clients — hand those over before any own-channel
     // filtering. Events for unregistered foreign channels keep the existing
@@ -921,9 +932,16 @@ export class SlackClient extends BasePlatformClient {
     }
   }
 
-  /**
-   * Get a user by username.
-   */
+  /** Resolve the current counterparty of a 1:1 DM for boot authorization. */
+  async getDirectMessageUser(channelId: string): Promise<PlatformUser | null> {
+    const response = await this.api<SlackApiResponse & { channel?: { is_im?: boolean; user?: string } }>(
+      'GET', `conversations.info?channel=${encodeURIComponent(channelId)}`,
+    );
+    return response.channel?.is_im && response.channel.user
+      ? this.getUser(response.channel.user) : null;
+  }
+
+  /** Get a user by username. */
   async getUserByUsername(username: string): Promise<PlatformUser | null> {
     // Check cache first
     const cachedId = this.usernameToIdCache.get(username);

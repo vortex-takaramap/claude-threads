@@ -543,3 +543,17 @@ describe('sanitizeEntryText NEL hardening', () => {
     expect(sanitizeEntryText(`a${nel}# fake header`)).toBe('a; # fake header');
   });
 });
+
+test('derived DM reads and writes the parent channel memory, including concurrent updates', async () => {
+  store.setChannelParent('desk--dm-D1', 'desk');
+  await store.addChannelEntries('desk', [{ text: 'Parent rule', source: 'user', addedBy: 'alice' }]);
+  expect(store.buildChannelMemoryBlock('desk--dm-D1')).toContain('Parent rule');
+  await Promise.all([
+    store.addChannelEntries('desk--dm-D1', [{ text: 'DM rule', source: 'agent', addedBy: 'alice' }]),
+    store.addChannelEntries('desk', [{ text: 'Concurrent rule', source: 'user', addedBy: 'alice' }]),
+  ]);
+  expect(store.channelMemoryPath('desk--dm-D1')).toBe(store.channelMemoryPath('desk'));
+  expect(store.listChannelEntries('desk').map((entry) => entry.text)).toEqual(['Parent rule', 'DM rule', 'Concurrent rule']);
+  await store.forgetChannelEntry('desk--dm-D1', 'DM rule');
+  expect(store.buildChannelMemoryBlock('desk')).not.toContain('DM rule');
+});

@@ -240,13 +240,19 @@ export class MemoryStore {
     this.root = rootDir ?? process.env.CLAUDE_THREADS_MEMORY_DIR ?? DEFAULT_ROOT;
   }
 
+  private readonly channelParents = new Map<string, string>();
+
+  setChannelParent(platformId: string, parentId: string): void {
+    this.channelParents.set(platformId, parentId);
+  }
+
   get rootDir(): string {
     return this.root;
   }
 
   /** Absolute path of a platform's channel memory file. */
   channelMemoryPath(platformId: string): string {
-    return join(this.root, platformSegment(platformId), 'channel', 'MEMORY.md');
+    return join(this.root, platformSegment(this.channelParents.get(platformId) ?? platformId), 'channel', 'MEMORY.md');
   }
 
   /**
@@ -444,6 +450,7 @@ export class MemoryStore {
 
   /** Serialize a mutating operation per platform id. */
   private runExclusive<T>(platformId: string, fn: () => T): Promise<T> {
+    platformId = this.channelParents.get(platformId) ?? platformId;
     let queue = this.locks.get(platformId);
     if (!queue) {
       queue = new SerialQueue();
