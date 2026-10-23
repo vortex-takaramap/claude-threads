@@ -91,6 +91,14 @@ export function parseMcpToolName(toolName: string): McpToolParts | null {
  * @param string - The string to escape
  * @returns Escaped string safe for use in RegExp
  */
+/**
+ * Whether a tool's thread log line is hidden by config `hiddenTools`:
+ * an exact name match, or `*` to hide every tool line.
+ */
+export function isHiddenTool(hiddenTools: readonly string[] | undefined, toolName: string): boolean {
+  return !!hiddenTools && (hiddenTools.includes('*') || hiddenTools.includes(toolName));
+}
+
 export function escapeRegExp(string: string): string {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

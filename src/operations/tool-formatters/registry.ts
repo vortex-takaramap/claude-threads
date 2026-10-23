@@ -12,7 +12,7 @@ import type {
   ToolFormatResult,
   ToolInput,
 } from './types.js';
-import { parseMcpToolName } from './utils.js';
+import { isHiddenTool, parseMcpToolName } from './utils.js';
 
 // ---------------------------------------------------------------------------
 // Registry Implementation
@@ -84,7 +84,7 @@ export class ToolFormatterRegistry implements ToolFormatterRegistryInterface {
   ): ToolFormatResult {
     // Operator-configured hidden tools (config `hiddenTools`): no display line,
     // and `hidden` keeps the start time unrecorded so no result line follows.
-    if (options.hiddenTools?.includes(toolName)) {
+    if (isHiddenTool(options.hiddenTools, toolName)) {
       return { display: null, hidden: true };
     }
 

@@ -42,7 +42,7 @@ export interface ToolFormatOptions {
   maxPreviewLines?: number;
   /** Worktree info for shortening paths */
   worktreeInfo?: WorktreeContext;
-  /** Exact tool names to hide (config `hiddenTools`). Unset/empty = none hidden. */
+  /** Tool names to hide (config `hiddenTools`); `*` hides every tool line. Unset/empty = none hidden. */
   hiddenTools?: readonly string[];
 }
 

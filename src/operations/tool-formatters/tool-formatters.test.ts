@@ -1261,6 +1261,14 @@ describe('ToolFormatterRegistry hiddenTools', () => {
     }
   });
 
+  it('hides every tool when hiddenTools contains *', () => {
+    for (const name of ['Read', 'Bash', 'mcp__srv__create_thing', 'SomeUnknownTool']) {
+      const result = registry.format(name, { file_path: '/a/b.ts' }, opts(['*']));
+      expect(result.hidden).toBe(true);
+      expect(result.display).toBeNull();
+    }
+  });
+
   it('hides tools listed in hiddenTools (registered, MCP and unknown)', () => {
     const hiddenTools = ['Read', 'mcp__srv__list_things', 'SomeUnknownTool'];
     for (const name of hiddenTools) {

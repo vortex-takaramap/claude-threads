@@ -1062,6 +1062,13 @@ describe('Event Transformer hiddenTools', () => {
     expect(ops).toHaveLength(0);
   });
 
+  it('hides every tool_use and server_tool_use when hiddenTools contains *', () => {
+    const ctx = mkCtx(['*']);
+    const ops = transformEvent(assistantWith([toolUse('mcp__srv__create_thing'), serverToolUse('web_search')]), ctx);
+    expect(ops).toHaveLength(0);
+    expect(ctx.toolStartTimes.has('toolu_1')).toBe(false);
+  });
+
   it('still shows tools and server tools that are not listed', () => {
     const ctx = mkCtx(['web_search', 'mcp__srv__list_things']);
     const ops = transformEvent(

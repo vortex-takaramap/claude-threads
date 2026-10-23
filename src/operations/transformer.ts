@@ -26,6 +26,7 @@ import {
   createStatusUpdateOp,
 } from './types.js';
 import { toolFormatterRegistry } from './tool-formatters/index.js';
+import { isHiddenTool } from './tool-formatters/utils.js';
 import type { WorktreeContext } from './tool-formatters/index.js';
 import type { TaskTracker } from './task-tracker.js';
 
@@ -190,7 +191,7 @@ function transformAssistant(
         `💭 ${ctx.formatter.formatItalic(preview)}`
       );
       textBuffer.push(formatted);
-    } else if (block.type === 'server_tool_use' && block.name && !ctx.hiddenTools?.includes(block.name)) {
+    } else if (block.type === 'server_tool_use' && block.name && !isHiddenTool(ctx.hiddenTools, block.name)) {
       // Server-managed tools (e.g., web search) - treat as tool output
       flushTextBuffer();
       const inputStr = block.input ? JSON.stringify(block.input).substring(0, 50) : '';

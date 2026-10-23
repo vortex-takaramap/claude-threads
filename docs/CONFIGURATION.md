@@ -105,7 +105,8 @@ hiddenTools:
   - mcp__myserver__list_items
 ```
 
-- Names are matched **exactly** against the tool name Claude reports. MCP tools are `mcp__<server>__<tool>`; there are no wildcards.
+- Names are matched **exactly** against the tool name Claude reports. MCP tools are `mcp__<server>__<tool>`; there are no partial wildcards.
+- A single `*` entry hides every tool line (only Claude's text, questions and permission prompts remain in the thread).
 - A hidden tool posts no start line and no result line. Server-side tool lines (`🌐 …`, e.g. `web_search`) are hidden by the same list.
 - Unset or empty keeps the default: every tool is shown.
 - Only the thread display changes. The audit log (`auditLog`) and permission prompts still see every tool call.
