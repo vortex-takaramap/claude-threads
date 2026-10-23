@@ -209,6 +209,7 @@ async function tryResumeFromReaction(
       await platform.createPost(
         `⚠️ ${fmt.formatCode(username)} is not authorized to resume this session`,
         persistedSession.threadId,
+        { status: 'error' }
       );
     }
     return false;
@@ -221,6 +222,7 @@ async function tryResumeFromReaction(
       await platform.createPost(
         `⚠️ ${fmt.formatBold('Too busy')} - ${deps.registry.size} sessions active. Please try again later.`,
         persistedSession.threadId,
+        { status: 'error' }
       );
     }
     return false;

@@ -5,6 +5,7 @@ import {
   POST_TYPES,
   // Error post with bug reaction behavior
   postError,
+  postInteractiveAndRegister,
   // Utility functions
   formatBold,
   resetSessionActivity,
@@ -100,95 +101,110 @@ describe('POST_TYPES', () => {
 });
 
 describe('post() factory function', () => {
+  it('forwards the caller status without choosing an interactive status', async () => {
+    const created: PlatformPost = { id: 'ask-post', message: '', userId: 'bot', platformId: 'test', channelId: 'channel' };
+    const createInteractivePost = mock<PlatformClient['createInteractivePost']>(async (_message, _reactions, _threadId, onCreated) => {
+      onCreated?.(created);
+      return created;
+    });
+    const session = createMockSession({ platformOverrides: { createInteractivePost } });
+    const register = mock(() => {});
+    await postInteractiveAndRegister(session, 'Choose', ['+1'], register, { status: 'ask' });
+    expect(createInteractivePost).toHaveBeenCalledWith('Choose', ['+1'], session.threadId, expect.any(Function), { status: 'ask' });
+    expect(register).toHaveBeenCalledWith('ask-post', session.threadId);
+    await postInteractiveAndRegister(session, 'Toggle', ['eyes'], register);
+    expect(createInteractivePost).toHaveBeenLastCalledWith('Toggle', ['eyes'], session.threadId, expect.any(Function), undefined);
+  });
+
   it('posts info message without emoji prefix', async () => {
     const session = createMockSession();
     await post(session, 'info', 'Hello world');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('Hello world', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('Hello world', 'thread-123', undefined);
   });
 
   it('posts success message with ✅ prefix', async () => {
     const session = createMockSession();
     await post(session, 'success', 'Operation complete');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('✅ Operation complete', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('✅ Operation complete', 'thread-123', undefined);
   });
 
   it('posts warning message with ⚠️ prefix', async () => {
     const session = createMockSession();
     await post(session, 'warning', 'Be careful');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('⚠️ Be careful', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('⚠️ Be careful', 'thread-123', undefined);
   });
 
   it('posts error message with ❌ prefix', async () => {
     const session = createMockSession();
     await post(session, 'error', 'Something failed');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('❌ Something failed', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('❌ Something failed', 'thread-123', { status: 'error' });
   });
 
   it('posts secure message with 🔐 prefix', async () => {
     const session = createMockSession();
     await post(session, 'secure', 'Permission granted');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('🔐 Permission granted', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('🔐 Permission granted', 'thread-123', undefined);
   });
 
   it('posts command message with ⚙️ prefix', async () => {
     const session = createMockSession();
     await post(session, 'command', 'Executing action');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('⚙️ Executing action', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('⚙️ Executing action', 'thread-123', undefined);
   });
 
   it('posts cancelled message with 🛑 prefix', async () => {
     const session = createMockSession();
     await post(session, 'cancelled', 'Session ended');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('🛑 Session ended', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('🛑 Session ended', 'thread-123', undefined);
   });
 
   it('posts resume message with 🔄 prefix', async () => {
     const session = createMockSession();
     await post(session, 'resume', 'Resuming');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('🔄 Resuming', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('🔄 Resuming', 'thread-123', undefined);
   });
 
   it('posts timeout message with ⏱️ prefix', async () => {
     const session = createMockSession();
     await post(session, 'timeout', 'Timed out');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('⏱️ Timed out', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('⏱️ Timed out', 'thread-123', undefined);
   });
 
   it('posts interrupt message with ⏸️ prefix', async () => {
     const session = createMockSession();
     await post(session, 'interrupt', 'Paused');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('⏸️ Paused', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('⏸️ Paused', 'thread-123', undefined);
   });
 
   it('posts worktree message with 🌿 prefix', async () => {
     const session = createMockSession();
     await post(session, 'worktree', 'Created worktree');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('🌿 Created worktree', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('🌿 Created worktree', 'thread-123', undefined);
   });
 
   it('posts context message with 🧵 prefix', async () => {
     const session = createMockSession();
     await post(session, 'context', 'Including context');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('🧵 Including context', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('🧵 Including context', 'thread-123', undefined);
   });
 
   it('posts user message with 👤 prefix', async () => {
     const session = createMockSession();
     await post(session, 'user', 'User joined');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('👤 User joined', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('👤 User joined', 'thread-123', undefined);
   });
 
   it('updates lastMessageId tracking', async () => {
@@ -348,7 +364,7 @@ describe('postError with bug reaction', () => {
     const session = createMockSession();
     await postError(session, 'Something failed');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('❌ Something failed', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('❌ Something failed', 'thread-123', { status: 'error' });
     expect(session.platform.addReaction).toHaveBeenCalledWith('post-123', 'bug');
     expect(session.lastError).toEqual({
       postId: 'post-123',
@@ -361,7 +377,7 @@ describe('postError with bug reaction', () => {
     const session = createMockSession();
     await postError(session, 'Something failed', false);
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('❌ Something failed', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('❌ Something failed', 'thread-123', { status: 'error' });
     expect(session.platform.addReaction).not.toHaveBeenCalled();
     expect(session.lastError).toBeUndefined();
   });
@@ -386,7 +402,7 @@ describe('postWithReactions', () => {
     const session = createMockSession();
     await postWithReactions(session, 'Choose an option', ['+1', '-1', 'eyes']);
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('Choose an option', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('Choose an option', 'thread-123', undefined);
     expect(session.platform.addReaction).toHaveBeenCalledTimes(3);
     expect(session.platform.addReaction).toHaveBeenCalledWith('post-123', '+1');
     expect(session.platform.addReaction).toHaveBeenCalledWith('post-123', '-1');
@@ -415,7 +431,7 @@ describe('postBold', () => {
 
     expect(session.platform.createPost).toHaveBeenCalledWith(
       '✅ **Success** completed',
-      'thread-123'
+      'thread-123', undefined
     );
   });
 
@@ -423,14 +439,14 @@ describe('postBold', () => {
     const session = createMockSession();
     await postBold(session, '🎉', 'Done');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('🎉 **Done**', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('🎉 **Done**', 'thread-123', undefined);
   });
 
   it('creates post without emoji when emoji is empty', async () => {
     const session = createMockSession();
     await postBold(session, '', 'Plain bold');
 
-    expect(session.platform.createPost).toHaveBeenCalledWith('**Plain bold**', 'thread-123');
+    expect(session.platform.createPost).toHaveBeenCalledWith('**Plain bold**', 'thread-123', undefined);
   });
 });
 

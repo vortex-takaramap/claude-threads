@@ -156,6 +156,7 @@ export class SubagentExecutor extends BaseExecutor<SubagentState> {
       message,
       [MINIMIZE_TOGGLE_EMOJIS[0]],
       {
+        status: 'work',
         type: 'subagent',
         interactionType: 'toggle_minimize',
         toolUseId: op.toolUseId,

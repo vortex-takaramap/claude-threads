@@ -115,7 +115,7 @@ export function createTestContext(
     logger: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {}, debugJson: () => {}, forSession: () => ({} as any) } as any,
     // Helper methods that combine create + register + track
     createPost: async (content, options) => {
-      const post = await p.createPost(content, threadId);
+      const post = await p.createPost(content, threadId, { status: options.status });
       registerPost(post.id, options);
       updateLastMessage(post);
       return post;
@@ -127,7 +127,7 @@ export function createTestContext(
       const post = await p.createInteractivePost(content, reactions, threadId, (created) => {
         registerPost(created.id, options);
         onPostCreated?.(created);
-      });
+      }, { status: options.status });
       updateLastMessage(post);
       return post;
     },

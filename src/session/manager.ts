@@ -249,7 +249,8 @@ export class SessionManager extends EventEmitter {
         const formatter = platform.getFormatter();
         await platform.createPost(
           `🕘 ${formatter.formatBold(`Routine "${routine.name}" disabled`)} — ${reason}. ` +
-          `Re-enable with ${formatter.formatCode('!routines resume <n>')} once resolved.`,
+          `Re-enable with ${formatter.formatCode('!routines resume <n>')} once resolved.`, undefined,
+          { status: 'error' }
         ).catch(() => {});
       },
     });
@@ -265,7 +266,8 @@ export class SessionManager extends EventEmitter {
         const formatter = platform.getFormatter();
         await platform.createPost(
           `\u{1F441}\uFE0F ${formatter.formatBold(`Watch "${watch.name}" disabled`)} — ${reason}. ` +
-          `Re-enable with ${formatter.formatCode('!watches resume <n>')} once resolved.`,
+          `Re-enable with ${formatter.formatCode('!watches resume <n>')} once resolved.`, undefined,
+          { status: 'error' }
         ).catch(() => {});
       },
       cooldownMs: this.limits.watchCooldownMinutes * 60 * 1000,
@@ -1603,7 +1605,7 @@ export class SessionManager extends EventEmitter {
     }
 
     if (!this.autoUpdateManager.isEnabled()) {
-      await platform.createPost(`ℹ️ Auto-update is disabled in configuration`, threadId);
+      await platform.createPost(`ℹ️ Auto-update is disabled in configuration`, threadId, { status: 'error' });
       return;
     }
 
@@ -1633,7 +1635,7 @@ export class SessionManager extends EventEmitter {
       `${statusLine}\n\n` +
       `Start a session to use ${formatter.formatCode('!update now')} or ${formatter.formatCode('!update defer')}`;
 
-    await platform.createPost(message, threadId);
+    await platform.createPost(message, threadId, { status: 'normal' });
   }
 
   async forceUpdateNow(threadId: string, username: string): Promise<void> {
@@ -1773,11 +1775,11 @@ export class SessionManager extends EventEmitter {
     );
 
     if (message === null) {
-      await platform.createPost(`❌ Current directory is not a git repository`, threadId);
+      await platform.createPost(`❌ Current directory is not a git repository`, threadId, { status: 'error' });
       return;
     }
 
-    await platform.createPost(message, threadId);
+    await platform.createPost(message, threadId, { status: 'normal' });
   }
 
   /**
@@ -1799,7 +1801,7 @@ export class SessionManager extends EventEmitter {
 
     const isRepo = await isGitRepository(this.workingDir);
     if (!isRepo) {
-      await platform.createPost(`❌ Current directory is not a git repository`, threadId);
+      await platform.createPost(`❌ Current directory is not a git repository`, threadId, { status: 'error' });
       return;
     }
 
@@ -1814,7 +1816,8 @@ export class SessionManager extends EventEmitter {
     if (!target) {
       await platform.createPost(
         `❌ No worktree found for ${formatter.formatCode(branchOrPath)}`,
-        threadId
+        threadId,
+        { status: 'error' }
       );
       return;
     }
@@ -1904,7 +1907,7 @@ export class SessionManager extends EventEmitter {
           )
         ) {
           // Create new shutdown post and store the ID
-          const post = await session.platform.createPost(shutdownMessage, session.threadId);
+          const post = await session.platform.createPost(shutdownMessage, session.threadId, { status: 'error' });
           session.lifecyclePostId = post.id;
         }
         // Persist so resume can find the post ID
@@ -2102,7 +2105,8 @@ export class SessionManager extends EventEmitter {
         const post = await session.platform.createInteractivePost(
           message,
           ['👍', '👎'],
-          session.threadId
+          session.threadId, undefined,
+          { status: 'ask' }
         );
 
         // Store pending update prompt for reaction handling

@@ -73,14 +73,14 @@ export async function createRoutine(
 
   const trimmed = request.trim();
   if (!trimmed) {
-    await post(session, 'warning', `Usage: ${formatter.formatCode('!routine every weekday at 9:00, <task>')}`);
+    await post(session, 'warning', `Usage: ${formatter.formatCode('!routine every weekday at 9:00, <task>')}`, { status: 'error' });
     return;
   }
 
   await post(session, 'info', `🕘 Parsing the schedule...`);
   const result = await parse(trimmed, hostTimezone());
   if (!result.ok) {
-    await post(session, 'warning', `🕘 Could not create a routine: ${result.error}`);
+    await post(session, 'warning', `🕘 Could not create a routine: ${result.error}`, { status: 'error' });
     sessionLog(session).warn(`🕘 Routine parse failed for @${username}: ${result.error}`);
     return;
   }
@@ -126,6 +126,7 @@ export async function postRoutineConfirmation(
     `${formatter.formatItalic(`Each run starts a full Claude session in a new thread. ${choiceLine}`)}`,
     reactions,
     (postId, threadId) => ctx.ops.registerPost(postId, threadId),
+    { status: 'ask' }
   );
 
   session.messageManager?.setPendingRoutinePrompt({
@@ -224,7 +225,7 @@ async function manageListItems<T extends { id: string; name: string; createdBy: 
     const [, indexArg, mode] = approvalMatch;
     const item = flavor.list()[parseInt(indexArg, 10) - 1];
     if (!item) {
-      await post(session, 'warning', `${flavor.emoji} No ${flavor.noun.toLowerCase()} ${indexArg}. See ${formatter.formatCode(cmd)}.`);
+      await post(session, 'warning', `${flavor.emoji} No ${flavor.noun.toLowerCase()} ${indexArg}. See ${formatter.formatCode(cmd)}.`, { status: 'error' });
       return;
     }
     if (!await requireSessionOwner(session, username, `manage ${flavor.command}`)) {
@@ -251,13 +252,14 @@ async function manageListItems<T extends { id: string; name: string; createdBy: 
       session,
       'warning',
       `${flavor.emoji} Usage: ${formatter.formatCode(cmd)}, ${formatter.formatCode(`${cmd} ${flavor.actions} <n>`)} or ${formatter.formatCode(`${cmd} approval <n> on|off`)}`,
+      { status: 'error' }
     );
     return;
   }
   const [, action, indexArg] = match;
   const item = flavor.list()[parseInt(indexArg, 10) - 1];
   if (!item) {
-    await post(session, 'warning', `${flavor.emoji} No ${flavor.noun.toLowerCase()} ${indexArg}. See ${formatter.formatCode(cmd)}.`);
+    await post(session, 'warning', `${flavor.emoji} No ${flavor.noun.toLowerCase()} ${indexArg}. See ${formatter.formatCode(cmd)}.`, { status: 'error' });
     return;
   }
 
@@ -271,6 +273,7 @@ async function manageListItems<T extends { id: string; name: string; createdBy: 
       session,
       'warning',
       `${flavor.emoji} Only platform-allowed users can ${lowered} ${flavor.command} (${formatter.formatCode('@' + username)} is invited to this session only).`,
+      { status: 'error' }
     );
     return;
   }
@@ -334,11 +337,11 @@ export async function manageRoutines(
       await post(session, 'info', `🕘 Running ${formatter.formatBold(routine.name)} now — it will post in a new thread.`);
       const status = await ctx.ops.fireRoutineNow(platformId, routine);
       if (status === 'skipped') {
-        await post(session, 'warning', `🕘 Could not run now (session limit reached or platform busy) — try again shortly.`);
+        await post(session, 'warning', `🕘 Could not run now (session limit reached or platform busy) — try again shortly.`, { status: 'error' });
       } else if (status === 'unauthorized') {
-        await post(session, 'warning', `🕘 The routine's creator ${formatter.formatCode('@' + routine.createdBy)} is no longer authorized — routine disabled.`);
+        await post(session, 'warning', `🕘 The routine's creator ${formatter.formatCode('@' + routine.createdBy)} is no longer authorized — routine disabled.`, { status: 'error' });
       } else if (status === 'failed') {
-        await post(session, 'warning', `🕘 The run failed to start — check the bot logs.`);
+        await post(session, 'warning', `🕘 The run failed to start — check the bot logs.`, { status: 'error' });
       }
     },
   });
@@ -391,14 +394,14 @@ export async function createWatch(
 
   const trimmed = request.trim();
   if (!trimmed) {
-    await post(session, 'warning', `Usage: ${formatter.formatCode('!watch when <something happens>, <task>')}`);
+    await post(session, 'warning', `Usage: ${formatter.formatCode('!watch when <something happens>, <task>')}`, { status: 'error' });
     return;
   }
 
   await post(session, 'info', `\u{1F441}\uFE0F Parsing the trigger...`);
   const result = await parse(trimmed);
   if (!result.ok) {
-    await post(session, 'warning', `\u{1F441}\uFE0F Could not create a watch: ${result.error}`);
+    await post(session, 'warning', `\u{1F441}\uFE0F Could not create a watch: ${result.error}`, { status: 'error' });
     sessionLog(session).warn(`\u{1F441}\uFE0F Watch parse failed for @${username}: ${result.error}`);
     return;
   }
@@ -443,6 +446,7 @@ export async function postWatchConfirmation(
     `${formatter.formatItalic(`Each fire starts a full Claude session in the triggering thread (per-watch cooldown and daily cap apply). ${choiceLine}`)}`,
     reactions,
     (postId, threadId) => ctx.ops.registerPost(postId, threadId),
+    { status: 'ask' }
   );
 
   session.messageManager?.setPendingWatchPrompt({

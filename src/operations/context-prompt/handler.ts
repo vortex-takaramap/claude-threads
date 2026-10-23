@@ -228,7 +228,8 @@ export async function postContextPrompt(
   const post = await session.platform.createInteractivePost(
     message,
     reactionOptions,
-    session.threadId
+    session.threadId, undefined,
+    { status: 'ask' }
   );
 
   // Register for reaction routing

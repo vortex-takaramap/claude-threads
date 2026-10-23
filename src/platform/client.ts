@@ -223,7 +223,8 @@ export interface PlatformClient extends EventEmitter {
     message: string,
     reactions: string[],
     threadId?: string,
-    onPostCreated?: (post: PlatformPost) => void
+    onPostCreated?: (post: PlatformPost) => void,
+    options?: PostWriteOptions
   ): Promise<PlatformPost>;
 
   /**

@@ -33,7 +33,7 @@ export async function requireSessionOwner(
 ): Promise<boolean> {
   const formatter = session.platform.getFormatter();
   if (session.startedBy !== username && !session.platform.isUserAllowed(username)) {
-    await post(session, 'warning', `Only ${formatter.formatUserMention(session.startedBy)} or allowed users can ${action}`);
+    await post(session, 'warning', `Only ${formatter.formatUserMention(session.startedBy)} or allowed users can ${action}`, { status: 'error' });
     sessionLog(session).warn(`Unauthorized: @${username} tried to ${action}`);
     return false;
   }
@@ -44,7 +44,7 @@ export async function requireSessionOwner(
   const ownerScoped =
     resolveApprovals(session.platform.approvals, isDcmThreadId(session.threadId)) === 'owner';
   if (ownerScoped && !session.sessionAllowedUsers.has(username)) {
-    await post(session, 'warning', `Only session participants can ${action} in this session`);
+    await post(session, 'warning', `Only session participants can ${action} in this session`, { status: 'error' });
     sessionLog(session).warn(`Unauthorized: non-participant @${username} tried to ${action} (approvals: owner)`);
     return false;
   }

@@ -52,6 +52,7 @@ export interface PostMetadata {
 }
 
 export interface PostWriteOptions {
+  status?: 'normal' | 'work' | 'ask' | 'error';
   metadata?: PostMetadata;
 }
 

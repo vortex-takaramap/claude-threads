@@ -5,6 +5,7 @@
  * on the chat platform (posting messages, updating posts, etc.).
  */
 
+import type { PostWriteOptions } from '../../platform/types.js';
 import type { PlatformClient, PlatformPost, PlatformFormatter } from '../../platform/index.js';
 import type { PostTracker, RegisterPostOptions, PostType, InteractionType } from '../post-tracker.js';
 import type { ContentBreaker } from '../content-breaker.js';
@@ -22,6 +23,7 @@ import type { ParsedWatchRequest } from '../../watches/parser.js';
  * Compatible with RegisterPostOptions for direct pass-through.
  */
 export interface CreatePostOptions {
+  status?: PostWriteOptions['status'];
   type: PostType;
   interactionType?: InteractionType;
   toolUseId?: string;

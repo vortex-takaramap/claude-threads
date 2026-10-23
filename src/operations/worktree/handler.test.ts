@@ -422,7 +422,8 @@ describe('Worktree Module', () => {
           expect.any(String),
           // Registration callback: fires before the option reactions are
           // added so a reaction in that window is still routed.
-          expect.any(Function)
+          expect.any(Function),
+          { status: 'ask' }
         );
 
         // The queued prompt should NOT have been sent yet

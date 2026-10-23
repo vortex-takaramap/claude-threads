@@ -62,7 +62,9 @@ export {
   resolveReconnectPolicy,
 } from './types.js';
 
-import type { Config, WorktreeMode as WorktreeModeType, PermissionMode, OverheadVisibility } from './types.js';
+import { resolveStatusIcons } from './types.js';
+
+import type { Config, SlackPlatformConfig, WorktreeMode as WorktreeModeType, PermissionMode, OverheadVisibility } from './types.js';
 
 // YAML config path
 export const CONFIG_PATH = resolve(homedir(), '.config', 'claude-threads', 'config.yaml');
@@ -77,7 +79,11 @@ export const CONFIG_PATH = resolve(homedir(), '.config', 'claude-threads', 'conf
 export function loadConfigWithMigration(): Config | null {
   if (existsSync(CONFIG_PATH)) {
     const content = readFileSync(CONFIG_PATH, 'utf-8');
-    return yaml.load(content) as Config;
+    const config = yaml.load(content) as Config;
+    for (const platform of config.platforms ?? []) {
+      if (platform.type === 'slack') resolveStatusIcons((platform as SlackPlatformConfig).icons);
+    }
+    return config;
   }
   return null; // No config found
 }

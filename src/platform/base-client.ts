@@ -24,6 +24,7 @@ import { wsLogger, createLogger } from '../utils/logger.js';
 import { DEFAULT_RECONNECT_POLICY, type ReconnectPolicy } from '../config/types.js';
 import type { PlatformClient } from './client.js';
 import type {
+  PostWriteOptions,
   PlatformUser,
   PlatformPost,
   PlatformFile,
@@ -187,7 +188,7 @@ export abstract class BasePlatformClient extends EventEmitter implements Platfor
   /**
    * Create a new post/message.
    */
-  abstract createPost(message: string, threadId?: string): Promise<PlatformPost>;
+  abstract createPost(message: string, threadId?: string, options?: PostWriteOptions): Promise<PlatformPost>;
 
   /**
    * Update an existing post/message.
@@ -353,9 +354,10 @@ export abstract class BasePlatformClient extends EventEmitter implements Platfor
     message: string,
     reactions: string[],
     threadId?: string,
-    onPostCreated?: (post: PlatformPost) => void
+    onPostCreated?: (post: PlatformPost) => void,
+    options?: PostWriteOptions
   ): Promise<PlatformPost> {
-    const post = await this.createPost(message, threadId);
+    const post = await this.createPost(message, threadId, options);
 
     // Let the caller start routing reactions on this post before the options
     // exist — a fast user can beat our own addReaction calls.

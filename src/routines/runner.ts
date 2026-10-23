@@ -42,7 +42,8 @@ export function fireRoutine(
       const formatter = platform.getFormatter();
       const rootPost = await platform.createPost(
         `🕘 ${formatter.formatBold(`Routine: ${routine.name}`)}\n` +
-        `${formatter.formatItalic(`${describeSchedule(routine.schedule)} · created by`)} ${formatter.formatUserMention(routine.createdBy)}`,
+        `${formatter.formatItalic(`${describeSchedule(routine.schedule)} · created by`)} ${formatter.formatUserMention(routine.createdBy)}`, undefined,
+        { status: 'work' }
       );
       return rootPost.id;
     },

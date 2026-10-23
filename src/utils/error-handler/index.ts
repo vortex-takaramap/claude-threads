@@ -130,7 +130,8 @@ export async function handleError(
       const fmt = context.session.platform.getFormatter();
       await context.session.platform.createPost(
         `⚠️ ${fmt.formatBold('Error')}: ${context.action} failed - ${message}`,
-        context.session.threadId
+        context.session.threadId,
+        { status: 'error' }
       );
     } catch (notifyError) {
       log.warn(`Could not notify user: ${notifyError}`);
