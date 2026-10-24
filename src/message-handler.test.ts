@@ -785,6 +785,7 @@ describe('handleMessage', () => {
       const postCalls = (client.createPost as any).mock.calls;
       const lastMessage = postCalls[postCalls.length - 1]?.[0];
       expect(lastMessage).toContain('Session cancelled');
+      expect(postCalls[postCalls.length - 1]?.[2]).toEqual({ status: 'error' });
     });
 
     test('!cancel also cancels paused session', async () => {

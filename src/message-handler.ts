@@ -383,9 +383,11 @@ export async function handleMessage(
                 detail: 'paused session cancelled',
               });
               session.cancelPausedSession(threadRoot, platformId);
+              // Same "sleeping" icon as cancelSession() in commands/handler.ts.
               await client.createPost(
                 `🛑 ${formatter.formatBold('Session cancelled')} by ${formatter.formatUserMention(username)}`,
-                threadRoot
+                threadRoot,
+                { status: 'error' }
               );
             }
           }
