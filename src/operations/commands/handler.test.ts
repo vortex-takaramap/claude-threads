@@ -604,7 +604,7 @@ describe('cancelSession', () => {
     expect(session.lifecycle.state).toBe('cancelling');
     expect(mockPlatform.createPost).toHaveBeenCalledWith(
       expect.stringContaining('Session cancelled'),
-      session.threadId, undefined
+      session.threadId, { status: 'error' }
     );
     expect(ctx.ops.killSession).toHaveBeenCalledWith(session.threadId);
   });

@@ -246,7 +246,8 @@ export async function cancelSession(
   transitionTo(session, 'cancelling');
 
   const formatter = session.platform.getFormatter();
-  await post(session, 'cancelled', `${formatter.formatBold('Session cancelled')} by ${formatter.formatUserMention(username)}`);
+  // The 'error' status selects the "sleeping" icon: a stopped session reads as the bot going to sleep.
+  await post(session, 'cancelled', `${formatter.formatBold('Session cancelled')} by ${formatter.formatUserMention(username)}`, { status: 'error' });
 
   await ctx.ops.killSession(session.threadId);
 }
