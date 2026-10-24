@@ -506,6 +506,27 @@ describe('buildPermissionArgs', () => {
     }
   });
 
+  it('injects Slack session context after configured stdio env, leaving HTTP unchanged', () => {
+    for (const [channelId, kind] of [['C-DESK', 'desk'], ['D-DM', 'im'], ['C-DESK', 'routine']]) {
+      const { args } = buildPermissionArgs({
+        ...baseOpts, permissionMode: 'default', threadId: '123.456',
+        sessionRequesterId: kind === 'routine' ? undefined : 'U-ALICE', sessionKind: kind,
+        platformConfig: { ...baseOpts.platformConfig, type: 'slack', channelId,
+          mcpServers: {
+            ops: { command: 'ops', env: { KEEP: 'yes', SLACK_OPS_SESSION_CHANNEL_ID: 'wrong', SLACK_OPS_SESSION_THREAD_TS: 'wrong', SLACK_OPS_SESSION_REQUESTER_ID: 'wrong', SLACK_OPS_SESSION_KIND: 'wrong' } },
+            remote: { type: 'http', url: 'https://example.test/mcp' },
+          },
+        },
+      });
+      const ops = blobOf(args).mcpServers.ops;
+      expect('env' in ops ? ops.env : undefined).toEqual({
+        KEEP: 'yes', SLACK_OPS_SESSION_CHANNEL_ID: channelId, SLACK_OPS_SESSION_THREAD_TS: '123.456',
+        SLACK_OPS_SESSION_REQUESTER_ID: kind === 'routine' ? '' : 'U-ALICE', SLACK_OPS_SESSION_KIND: kind,
+      });
+      expect(blobOf(args).mcpServers.remote).toEqual({ type: 'http', url: 'https://example.test/mcp' });
+    }
+  });
+
   it('declared stdio servers ride in the blob, normalized, with their env off argv', () => {
     const { args } = buildPermissionArgs({
       ...baseOpts,

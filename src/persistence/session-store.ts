@@ -89,6 +89,7 @@ export interface PersistedSession {
   threadId: string;              // Thread ID within that platform
   claudeSessionId: string;       // UUID for --session-id / --resume
   startedBy: string;             // Username who started the session
+  startedByUserId?: string;      // Slack user ID of the session starter
   startedByDisplayName?: string; // Display name for UI
   startedAt: string;             // ISO date
   sessionNumber: number;

@@ -48,6 +48,15 @@ describe('buildRestartCliOptions', () => {
     expect(options.decisionBridgePath).toBe('/tmp/bridge-1.sock');
   });
 
+  it('preserves the Slack requester across CLI respawns, leaving unattended runs without a requester', () => {
+    expect(buildRestartCliOptions(makeSession({ startedByUserId: 'U-ALICE' }), deps).sessionRequesterId).toBe('U-ALICE');
+    const options = buildRestartCliOptions(makeSession({
+      startedByUserId: 'U-ALICE', unattended: true, firstPrompt: '[Scheduled routine "Daily"',
+    }), deps);
+    expect(options.sessionRequesterId).toBeUndefined();
+    expect(options.sessionKind).toBe('routine');
+  });
+
   it('leaves the bridge path undefined when the session has no bridge', () => {
     const options = buildRestartCliOptions(makeSession(), deps);
     expect(options.decisionBridgePath).toBeUndefined();

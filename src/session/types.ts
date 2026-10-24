@@ -255,6 +255,7 @@ export interface Session {
   sessionId: string;        // Composite key "platformId:threadId"
   claudeSessionId: string;  // UUID for --session-id / --resume
   startedBy: string;            // Username (for permissions)
+  startedByUserId?: string;      // Slack user ID of the session starter
   startedByDisplayName?: string; // Display name (for UI)
   startedAt: Date;
   lastActivityAt: Date;

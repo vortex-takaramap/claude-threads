@@ -179,6 +179,7 @@ export async function handleMessage(
 ): Promise<void> {
   const { platformId, logger, onKill } = options;
   const dcm = resolveDirectChannelMode(options.directChannelMode);
+  const isDirectMessage = client.platformType === 'slack' && client.isDirectMessage === true;
   const username = user?.username || 'unknown';
   const message = post.message;
   // In DCM every message in the channel — top-level or inside any thread —
@@ -331,7 +332,7 @@ export async function handleMessage(
       // conversation between users — ignore it so it doesn't interrupt Claude.
       // Commands and pending worktree-prompt responses are already handled above
       // and so always work, including `!mentions off` to leave quiet mode.
-      if (activeSession.respondOnlyWhenMentioned && !client.isBotMentioned(message)) {
+      if (!isDirectMessage && activeSession.respondOnlyWhenMentioned && !client.isBotMentioned(message)) {
         return;
       }
 
@@ -486,7 +487,7 @@ export async function handleMessage(
       // persisted flag survives the idle pause, so honor it here just like the
       // active-session gate above. Commands (incl. !stop) are handled earlier
       // and so still bypass this gate.
-      if (persistedSession?.respondOnlyWhenMentioned && !client.isBotMentioned(message)) {
+      if (!isDirectMessage && persistedSession?.respondOnlyWhenMentioned && !client.isBotMentioned(message)) {
         return;
       }
 
@@ -504,7 +505,7 @@ export async function handleMessage(
     // `respondTo: all_messages`, where every channel message is implicitly
     // addressed to the bot (the channel is the session). With
     // `respondTo: mention` the DCM session also starts only on a mention.
-    const mentionRequired = !dcm.enabled || dcm.respondTo === 'mention';
+    const mentionRequired = !isDirectMessage && (!dcm.enabled || dcm.respondTo === 'mention');
     if (mentionRequired && !client.isBotMentioned(message)) {
       // The bot is about to ignore this message — the one moment event
       // triggers (watches) evaluate it. Fire-and-forget: evaluation must

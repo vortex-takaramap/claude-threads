@@ -95,6 +95,8 @@ export function buildRestartCliOptions(
     uploadDir: getSessionUploadDir(session.platformId, session.threadId),
     outboundFiles: platformMcpConfig.outboundFiles,
     sessionOwnerUsername: session.startedBy,
+    sessionRequesterId: session.unattended ? undefined : session.startedByUserId,
+    sessionKind: session.unattended ? (/^\[Scheduled routine /.test(session.firstPrompt ?? '') ? 'routine' : 'watch') : undefined,
     // The bridge is session-scoped and survives respawns: the new MCP child
     // must reconnect to the same socket.
     decisionBridgePath: session.decisionBridge?.path,

@@ -1067,6 +1067,11 @@ export function resolveStatusIcons(value: unknown): StatusIcons | undefined {
 }
 
 export interface SlackPlatformConfig extends PlatformInstanceConfig {
+  /** Accept 1:1 DMs from allowed users. Defaults to false. */
+  directMessages?: boolean;
+  directMessagesDeniedMessage?: string;
+  /** Parent channel memory for a derived DM instance. */
+  memoryPlatformId?: string;
   icons?: StatusIcons;
   type: 'slack';
   botToken: string;

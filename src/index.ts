@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { program } from 'commander';
+import { createSlackDmRuntime } from './platform/slack/dm-runtime.js';
 import { createDmDiscoveryRuntime, type DmDiscoveryRuntime } from './platform/dm-discovery-runtime.js';
 import { DM_PLATFORM_SEP } from './platform/dm-discovery.js';
 import type { DirectChannelModeConfig } from './platform/utils.js';
@@ -898,6 +899,46 @@ async function startWithoutDaemon() {
     });
   }
 
+  const slackDmRuntime = createSlackDmRuntime({
+    unregisterPlatform: (id) => {
+      platforms.delete(id);
+      session.removePlatform(id);
+      ui.removePlatformStatus(id);
+      configureAuditLog(id, false);
+    },
+    isEnabled: (id) => platformEnabledState.get(id) ?? true,
+    logError: (error) => ui.addLog({ level: 'error', component: 'slack-dm', message: String(error) }),
+    registerPlatform: (dmConfig, parent) => {
+      const client = new SlackClient(dmConfig, parent);
+      platforms.set(dmConfig.id, client);
+      ui.setPlatformStatus(dmConfig.id, {
+        displayName: dmConfig.displayName, botName: dmConfig.botName,
+        url: 'https://slack.com', platformType: 'slack', enabled: true,
+      });
+      configureAuditLog(dmConfig.id, resolveAuditLogEnabled(dmConfig.auditLog, `dm[${dmConfig.id}].auditLog`));
+      session.addPlatform(dmConfig.id, client, {
+        memoryPlatformId: dmConfig.memoryPlatformId,
+        overhead: {
+          sessionHeader: resolveOverheadVisibility(dmConfig.sessionHeader, `dm[${dmConfig.id}].sessionHeader`),
+          stickyMessage: resolveOverheadVisibility(dmConfig.stickyMessage, `dm[${dmConfig.id}].stickyMessage`),
+          lifecycle: resolveOverheadVisibility(dmConfig.lifecycle, `dm[${dmConfig.id}].lifecycle`),
+          turnMarker: resolveTurnMarker(dmConfig.turnMarker, dmConfig.turnMarkerEmoji, 'slack', `dm[${dmConfig.id}]`),
+        },
+        memory: resolveMemoryConfig(dmConfig.memory, `dm[${dmConfig.id}].memory`),
+        routinesEnabled: false, watchesEnabled: false,
+        transcriptionEnabled: resolveTranscriptionEnabled(dmConfig.transcription, `dm[${dmConfig.id}].transcription`),
+      });
+      wirePlatformEvents(dmConfig.id, client, session, ui, false);
+      return client;
+    },
+  });
+  const slackConfigs = config.platforms.filter((p): p is SlackPlatformConfig => p.type === 'slack');
+  for (const slackConfig of slackConfigs) {
+    const parent = platforms.get(slackConfig.id);
+    if (parent instanceof SlackClient) slackDmRuntime.wireParent(slackConfig, parent);
+  }
+  await slackDmRuntime.reconstructPersisted(slackConfigs, platforms, sessionStore.load());
+
   // Connect only enabled platforms
   const enabledPlatforms = Array.from(platforms.entries()).filter(
     ([id]) => platformEnabledState.get(id) ?? true
@@ -908,7 +949,8 @@ async function startWithoutDaemon() {
     enabledPlatforms.map(async ([id, client]) => {
       ui.addLog({ level: 'debug', component: 'init', message: `Connecting to ${id}...` });
       try {
-        await client.connect();
+        // Persisted Slack DM children connected during reconstruction, before the parent.
+        if (!(client instanceof SlackClient && client.isDirectMessage)) await client.connect();
         ui.addLog({ level: 'info', component: 'init', message: `✓ Connected to ${id}` });
         return { id, success: true, client };
       } catch (err) {

@@ -4,6 +4,9 @@ display_information:
   background_color: "#4a154b"
 
 features:
+  app_home:
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: false
   bot_user:
     display_name: Claude Code
     always_online: true
@@ -14,6 +17,8 @@ oauth_config:
       - channels:history
       - channels:read
       - chat:write
+      - im:history
+      - im:read
       - files:read
       - pins:read
       - pins:write
@@ -25,6 +30,7 @@ settings:
   event_subscriptions:
     bot_events:
       - message.channels
+      - message.im
       - reaction_added
       - reaction_removed
   interactivity:

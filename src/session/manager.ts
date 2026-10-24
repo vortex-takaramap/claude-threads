@@ -286,6 +286,7 @@ export class SessionManager extends EventEmitter {
     // two adjacent optional booleans, and a transposed call site would have
     // silently enabled the wrong feature per platform.
     options?: {
+      memoryPlatformId?: string;
       overhead?: Partial<PlatformOverhead>;
       memory?: ResolvedMemoryConfig;
       routinesEnabled?: boolean;
@@ -294,6 +295,7 @@ export class SessionManager extends EventEmitter {
     },
   ): void {
     this.platforms.set(platformId, client);
+    if (options?.memoryPlatformId) this.memoryStore.setChannelParent(platformId, options.memoryPlatformId);
     this.platformOverhead.set(platformId, {
       sessionHeader: options?.overhead?.sessionHeader ?? DEFAULT_OVERHEAD_VISIBILITY,
       stickyMessage: options?.overhead?.stickyMessage ?? DEFAULT_OVERHEAD_VISIBILITY,
@@ -811,6 +813,7 @@ export class SessionManager extends EventEmitter {
       threadId: session.threadId,
       claudeSessionId: session.claudeSessionId,
       startedBy: session.startedBy,
+      ...(session.startedByUserId ? { startedByUserId: session.startedByUserId } : {}),
       startedByDisplayName: session.startedByDisplayName,
       startedAt: session.startedAt.toISOString(),
       lastActivityAt: session.lastActivityAt.toISOString(),

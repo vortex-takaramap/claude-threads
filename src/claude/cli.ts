@@ -143,6 +143,8 @@ export interface ClaudeCliOptions {
    * claude-threads from another channel."
    */
   sessionOwnerUsername?: string;
+  sessionRequesterId?: string;
+  sessionKind?: string;
   /**
    * Optional Claude account to spawn under. When set, `HOME` (for OAuth) or
    * `ANTHROPIC_API_KEY` (for API-billed) in the child env is overridden so
@@ -426,6 +428,8 @@ export function buildPermissionArgs(opts: {
   /** Username of the session starter; surfaced to the MCP child as
    *  SESSION_OWNER_USERNAME for `send_dm` attribution. */
   sessionOwnerUsername?: string;
+  sessionRequesterId?: string;
+  sessionKind?: string;
   /** Decision-bridge socket path; surfaced as DECISION_BRIDGE_PATH. */
   decisionBridgePath?: string;
   /** Agent-feature tool gates for the MCP child; see ClaudeCliOptions. */
@@ -533,7 +537,18 @@ export function buildPermissionArgs(opts: {
     if (name === BOT_MCP_SERVER_NAME) continue;
     mcpConfig.mcpServers[name] = isRemoteMcpServer(server)
       ? { type: server.type, url: server.url, ...(server.headers ? { headers: server.headers } : {}) }
-      : { type: 'stdio', command: server.command, args: server.args ?? [], env: server.env ?? {} };
+      : {
+        type: 'stdio', command: server.command, args: server.args ?? [],
+        env: {
+          ...server.env,
+          ...(opts.platformConfig.type === 'slack' ? {
+            SLACK_OPS_SESSION_CHANNEL_ID: opts.platformConfig.channelId,
+            SLACK_OPS_SESSION_THREAD_TS: opts.threadId || '',
+            SLACK_OPS_SESSION_REQUESTER_ID: opts.sessionRequesterId || '',
+            SLACK_OPS_SESSION_KIND: opts.sessionKind || (opts.platformConfig.channelId.startsWith('D') ? 'im' : 'desk'),
+          } : {}),
+        },
+      };
   }
 
   const materialized = materializeMcpConfig(mcpConfig, opts.sessionId, { inline: opts.inline });
@@ -731,6 +746,8 @@ export class ClaudeCli extends EventEmitter {
       uploadDir: this.options.uploadDir,
       outboundFiles: this.options.outboundFiles,
       sessionOwnerUsername: this.options.sessionOwnerUsername,
+      sessionRequesterId: this.options.sessionRequesterId,
+      sessionKind: this.options.sessionKind,
       decisionBridgePath: this.options.decisionBridgePath,
       agentFeatures: this.options.agentFeatures,
     });
