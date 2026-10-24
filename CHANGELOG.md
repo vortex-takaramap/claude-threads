@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added (cherry-picked from upstream)
 - **Per-platform `lifecycle` visibility** (#505, thanks @kaza). Session status posts — the idle warning, the timeout notice, the pause notice, the resume notice and the shutdown notice a deploy leaves in every open thread — are the bulk of what a quiet channel contains when the bot is used as an assistant rather than a task runner. `lifecycle: minimal` drops the idle warning, which predicts a timeout the next message would undo anyway; `hidden` drops the status posts entirely. Defaults to `full`, so nothing changes unless you set it. Editing a post the thread already has is never suppressed: it adds no post and no notification, and leaving a stale "session idle" up across a restart would read worse than the edit. An abnormal exit survives every level, because a session that died must not look like one that finished. At `hidden` there is no post for a 🔄 reaction to resume from, so the channel sticky tells the reader to send a message instead.
 
+### Fixed (cherry-picked from upstream 1.39.2)
+- **Slack: reacting to a permission prompt works again** (#622). The MCP side sent Slack read methods (`users.info`, `conversations.replies`, …) as JSON bodies, which Slack ignores, so permission reactions were never recognized and `read_post` / `read_thread` / `read_channel_history` came back empty. Read methods now go out as GET, and the prompt polls `reactions.get` instead of opening a second Socket Mode connection.
+- **A skin-toned 👍 no longer denies** (#628, Slack form).
+
+### Security (cherry-picked from upstream 1.39.2)
+- `fast-uri` 4.1.4 → 4.2.1 (#625) and `ip-address` 10.4.0 → 10.7.2 (#626), both bundled into `dist/`.
+
 ## [1.36.1] - 2026-09-10
 
 ### Fixed
