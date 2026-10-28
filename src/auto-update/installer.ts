@@ -8,6 +8,7 @@ import { spawn, spawnSync } from 'child_process';
 import { existsSync, readFileSync, mkdirSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { homedir } from 'os';
+import { getConfigDir } from '../config/paths.js';
 import { writeFileAtomic } from '../persistence/atomic-file.js';
 import { createLogger } from '../utils/logger.js';
 import { VERSION } from '../version.js';
@@ -117,7 +118,7 @@ export function detectOriginalInstaller(): 'bun' | 'npm' | null {
 }
 
 // State file path
-const STATE_PATH = resolve(homedir(), '.config', 'claude-threads', UPDATE_STATE_FILENAME);
+const STATE_PATH = resolve(getConfigDir(), UPDATE_STATE_FILENAME);
 
 // Package name
 const PACKAGE_NAME = 'claude-threads';

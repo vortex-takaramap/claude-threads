@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync } from 'fs';
 import { resolve, dirname } from 'path';
-import { homedir } from 'os';
+import { getConfigDir } from './paths.js';
 import yaml from 'js-yaml';
 
 // Re-export all types from types.ts
@@ -67,7 +67,7 @@ import { resolveStatusIcons } from './types.js';
 import type { Config, SlackPlatformConfig, WorktreeMode as WorktreeModeType, PermissionMode, OverheadVisibility } from './types.js';
 
 // YAML config path
-export const CONFIG_PATH = resolve(homedir(), '.config', 'claude-threads', 'config.yaml');
+export const CONFIG_PATH = resolve(getConfigDir(), 'config.yaml');
 
 // =============================================================================
 // Config Loading

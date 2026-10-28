@@ -17,7 +17,7 @@
  *
  * Storage root: `~/.config/claude-threads/memory/` (0700 dirs, 0600 files),
  * overridable via `CLAUDE_THREADS_MEMORY_DIR`. The root is resolved from the
- * BOT process's homedir at construction — deliberately immune to the account
+ * BOT process's config directory — deliberately immune to the account
  * pool's per-session child `HOME` overrides (see buildClaudeChildEnv), which
  * must never move memory.
  *
@@ -42,7 +42,7 @@ import {
   readFileSync,
   realpathSync,
 } from 'fs';
-import { homedir } from 'os';
+import { getConfigDir } from '../config/paths.js';
 import { basename, dirname, join, sep } from 'path';
 import { SerialQueue, writeFileAtomic } from '../persistence/atomic-file.js';
 import { createLogger } from '../utils/logger.js';
@@ -51,7 +51,7 @@ import type { ResolvedMemoryConfig } from '../config/types.js';
 
 const log = createLogger('memory');
 
-const DEFAULT_ROOT = join(homedir(), '.config', 'claude-threads', 'memory');
+const DEFAULT_ROOT = join(getConfigDir(), 'memory');
 
 /**
  * Read-time caps for the system-prompt block. Mirror the native auto-memory
