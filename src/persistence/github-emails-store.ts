@@ -17,14 +17,14 @@
 
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { writeFileAtomic } from './atomic-file.js';
-import { homedir } from 'os';
+import { getConfigDir } from '../config/paths.js';
 import { join } from 'path';
 import yaml from 'js-yaml';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('gh-emails');
 
-const DEFAULT_CONFIG_DIR = join(homedir(), '.config', 'claude-threads');
+const DEFAULT_CONFIG_DIR = getConfigDir();
 const DEFAULT_FILE = join(DEFAULT_CONFIG_DIR, 'github-emails.yaml');
 
 /**

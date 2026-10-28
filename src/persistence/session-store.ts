@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { writeFileAtomic } from './atomic-file.js';
-import { homedir } from 'os';
+import { getConfigDir } from '../config/paths.js';
 import { join } from 'path';
 import { createLogger } from '../utils/logger.js';
 import { milestoneReached } from '../sponsor.js';
@@ -189,7 +189,7 @@ interface SessionStoreData {
 }
 
 const STORE_VERSION = 2; // v2: Added platformId for multi-platform support
-const DEFAULT_CONFIG_DIR = join(homedir(), '.config', 'claude-threads');
+const DEFAULT_CONFIG_DIR = getConfigDir();
 const DEFAULT_SESSIONS_FILE = join(DEFAULT_CONFIG_DIR, 'sessions.json');
 
 /**

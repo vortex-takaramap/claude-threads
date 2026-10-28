@@ -17,7 +17,7 @@
 
 import { chmodSync, closeSync, constants as fsConstants, fchmodSync, lstatSync, mkdirSync, openSync, writeSync } from 'fs';
 import { join } from 'path';
-import { homedir } from 'os';
+import { getDataDir } from '../config/paths.js';
 import { createLogger } from '../utils/logger.js';
 
 const log = createLogger('audit');
@@ -58,7 +58,7 @@ const preparedDirs = new Set<string>();
 const openFds = new Map<string, number>();
 
 function auditDir(): string {
-  return process.env.CLAUDE_THREADS_AUDIT_DIR || join(homedir(), '.claude-threads', 'audit');
+  return process.env.CLAUDE_THREADS_AUDIT_DIR || join(getDataDir(), 'audit');
 }
 
 /** Enable/disable the audit trail for a platform (called at registration). */
