@@ -7,6 +7,9 @@
 
 import { installFetchHarness, jsonResponse, type FetchResponder } from '../test-helpers/fetch-harness.js';
 import { describe, it, expect } from 'bun:test';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { getEmojiName } from '../utils.js';
 import { SlackClient } from './client.js';
 import type { SlackPlatformConfig } from '../../config/types.js';
@@ -700,5 +703,70 @@ describe('SlackClient post metadata (turn marker)', () => {
     expect(bodies[0].metadata).toEqual(meta);
     expect(bodies[1].metadata).toBeUndefined();
     expect(bodies[2].metadata).toEqual(meta);
+  });
+});
+
+
+describe('SlackClient event spool', () => {
+  async function exercise(enabled: boolean, missingDirectory = false) {
+    const directory = mkdtempSync(join(tmpdir(), 'slack-client-spool-'));
+    const path = join(directory, ...(missingDirectory ? ['missing'] : []), 'events.jsonl');
+    const original = process.env.CLAUDE_THREADS_EVENT_SPOOL;
+    try {
+      if (enabled) process.env.CLAUDE_THREADS_EVENT_SPOOL = path;
+      else delete process.env.CLAUDE_THREADS_EVENT_SPOOL;
+      const client = makeClient();
+      await primeBotUser(client);
+      // Configuration is read once when the client is constructed.
+      delete process.env.CLAUDE_THREADS_EVENT_SPOOL;
+      const seen: string[] = [];
+      client.on('message', post => seen.push(post.message));
+      const acks: string[] = [];
+      (client as any).ws = { readyState: 1, send: (data: string) => {
+        expect(existsSync(path)).toBe(false);
+        acks.push(data);
+      } };
+      const event = { type: 'message', channel_type: 'channel', channel: 'C123', ts: '1.2', text: 'hi', user: 'U-ALICE' };
+      const before = Date.now() / 1000;
+      (client as any).handleSocketModeEvent({ type: 'events_api', envelope_id: 'e1', payload: { event_id: 'Ev1', event } });
+      const after = Date.now() / 1000;
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(acks).toEqual([JSON.stringify({ envelope_id: 'e1' })]);
+      expect(seen).toEqual(['hi']);
+      if (enabled && !missingDirectory) {
+        const row = JSON.parse(readFileSync(path, 'utf8'));
+        expect(row.event).toEqual(event);
+        expect(row.event_id).toBe('Ev1');
+        expect(row.received_at).toBeGreaterThanOrEqual(before);
+        expect(row.received_at).toBeLessThanOrEqual(after);
+        (client as any).ws = null;
+        const foreign = { ...event, channel: 'C-OTHER', bot_id: 'B-SELF', user: 'U-BOT' };
+        (client as any).handleSocketModeEvent({ type: 'events_api', payload: { event: foreign } });
+        const rows = readFileSync(path, 'utf8').trimEnd().split('\n').map(line => JSON.parse(line));
+        expect(rows).toHaveLength(2);
+        expect(rows[1].event).toEqual(foreign);
+        expect(seen).toEqual(['hi']);
+      } else {
+        expect(existsSync(path)).toBe(false);
+      }
+    } finally {
+      if (original === undefined) delete process.env.CLAUDE_THREADS_EVENT_SPOOL;
+      else process.env.CLAUDE_THREADS_EVENT_SPOOL = original;
+      rmSync(directory, { recursive: true, force: true });
+    }
+  }
+
+  it('spools after ACK and preserves the own-channel message emit', async () => {
+    await exercise(true);
+  });
+
+  it('preserves message handling when spooling is disabled', async () => {
+    await exercise(false);
+  });
+
+  it('preserves ACK and message handling when the spool write fails', async () => {
+    setLogHandler(() => {});
+    try { await exercise(true, true); }
+    finally { setLogHandler(null); }
   });
 });
