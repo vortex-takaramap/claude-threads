@@ -3,9 +3,13 @@ import { appendFileSync, existsSync, mkdtempSync, readFileSync, renameSync, rmSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setLogHandler } from '../../utils/logger.js';
-import { spoolEvent } from './event-spool.js';
+import { spoolEvent, spoolReaction } from './event-spool.js';
+import type { SlackEventPayload } from './types.js';
 
 const directories: string[] = [];
+const reactionPayload = (reaction = '+1'): SlackEventPayload => ({
+  event: { type: 'reaction_added', item: { type: 'message', channel: 'D123', ts: '1.2' }, reaction, user: 'U123' },
+});
 function spoolPath(): string {
   const directory = mkdtempSync(join(tmpdir(), 'slack-spool-'));
   directories.push(directory);
@@ -15,6 +19,65 @@ function spoolPath(): string {
 afterEach(() => {
   for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
   setLogHandler(null);
+});
+
+describe('spoolReaction', () => {
+  it('ignores disabled spooling and non-target events', () => {
+    const append = mock(() => {});
+    for (const path of [undefined, '']) spoolReaction(path, reactionPayload(), Date.now, append);
+    const payloads: SlackEventPayload[] = [
+      {}, { event: { type: 'message' } },
+      { event: { ...reactionPayload().event!, type: 'reaction_removed' } },
+      { event: { ...reactionPayload().event!, item: { type: 'file', channel: 'D123', ts: '1.2' } } },
+      { event: { ...reactionPayload().event!, item: undefined } },
+      { event: { ...reactionPayload().event!, reaction: undefined } },
+      reactionPayload('heart'), reactionPayload('heart::skin-tone-2'),
+    ];
+    for (const payload of payloads) spoolReaction('/unused', payload, Date.now, append);
+    expect(append).not.toHaveBeenCalled();
+  });
+
+  it('appends all thumb aliases and skin tones unchanged, including DMs, with mode 0600', () => {
+    const path = spoolPath();
+    const reactions = ['+1', '-1', 'thumbsup', 'thumbsdown'].flatMap(name => [name, `${name}::skin-tone-2`]);
+    for (const reaction of reactions) spoolReaction(path, reactionPayload(reaction), () => 1234567);
+    const content = readFileSync(path, 'utf8');
+    expect(content.endsWith('\n')).toBe(true);
+    expect(content.trimEnd().split('\n').map(line => JSON.parse(line))).toEqual(
+      reactions.map(reaction => ({ received_at: 1234.567, channel: 'D123', ts: '1.2', reaction, user: 'U123' })),
+    );
+    expect(statSync(path).mode & 0o777).toBe(0o600);
+  });
+
+  it('reopens the path after rotation', () => {
+    const path = spoolPath();
+    spoolReaction(path, reactionPayload(), () => 1000);
+    renameSync(path, path + '.rotated');
+    spoolReaction(path, reactionPayload(), () => 1000);
+    expect(readFileSync(path, 'utf8')).toBe(readFileSync(path + '.rotated', 'utf8'));
+  });
+
+  it('tries three times and warns once with only the path and error code', () => {
+    const path = spoolPath();
+    const warnings: string[] = [];
+    setLogHandler((level, _component, message) => { if (level === 'warn') warnings.push(message); });
+    const append = mock(() => { throw Object.assign(new Error('private data'), { code: 'EACCES' }); });
+    expect(() => spoolReaction(path, reactionPayload(), Date.now, append)).not.toThrow();
+    expect(append).toHaveBeenCalledTimes(3);
+    expect(warnings).toEqual([`Reaction spool failed: ${path} (EACCES)`]);
+  });
+
+  it('stops retrying after a successful append', () => {
+    const path = spoolPath();
+    let attempts = 0;
+    const append: typeof appendFileSync = (file, data, options) => {
+      if (++attempts < 2) throw Object.assign(new Error(), { code: 'ENOENT' });
+      appendFileSync(file, data, options);
+    };
+    spoolReaction(path, reactionPayload(), () => 1000, append);
+    expect(attempts).toBe(2);
+    expect(readFileSync(path, 'utf8').split('\n')).toHaveLength(2);
+  });
 });
 
 describe('spoolEvent', () => {

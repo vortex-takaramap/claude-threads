@@ -708,6 +708,40 @@ describe('SlackClient post metadata (turn marker)', () => {
 
 
 describe('SlackClient event spool', () => {
+  it('spools reactions after ACK before channel routing and excludes the known bot', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'slack-client-reaction-spool-'));
+    const path = join(directory, 'reactions.jsonl');
+    const original = process.env.CLAUDE_THREADS_REACTION_SPOOL;
+    try {
+      process.env.CLAUDE_THREADS_REACTION_SPOOL = path;
+      const client = makeClient();
+      await primeBotUser(client);
+      delete process.env.CLAUDE_THREADS_REACTION_SPOOL;
+      const acks: string[] = [];
+      (client as any).ws = { readyState: 1, send: (data: string) => {
+        expect(existsSync(path)).toBe(false);
+        acks.push(data);
+      } };
+      const event = { type: 'reaction_added', item: { type: 'message', channel: 'D-OTHER', ts: '1.2' }, reaction: '+1::skin-tone-2', user: 'U-ALICE' };
+      const before = Date.now() / 1000;
+      (client as any).handleSocketModeEvent({ type: 'events_api', envelope_id: 'e1', payload: { event } });
+      const after = Date.now() / 1000;
+      expect(acks).toEqual([JSON.stringify({ envelope_id: 'e1' })]);
+      const rows = readFileSync(path, 'utf8').trimEnd().split('\n').map(line => JSON.parse(line));
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toEqual({ received_at: expect.any(Number), channel: 'D-OTHER', ts: '1.2', reaction: event.reaction, user: event.user });
+      expect(rows[0].received_at).toBeGreaterThanOrEqual(before);
+      expect(rows[0].received_at).toBeLessThanOrEqual(after);
+      (client as any).handleSocketModeEvent({ type: 'events_api', payload: { event: { ...event, user: (client as any).botUserId } } });
+      expect(readFileSync(path, 'utf8').trimEnd().split('\n')).toHaveLength(1);
+      (client as any).ws = null;
+    } finally {
+      if (original === undefined) delete process.env.CLAUDE_THREADS_REACTION_SPOOL;
+      else process.env.CLAUDE_THREADS_REACTION_SPOOL = original;
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   async function exercise(enabled: boolean, missingDirectory = false) {
     const directory = mkdtempSync(join(tmpdir(), 'slack-client-spool-'));
     const path = join(directory, ...(missingDirectory ? ['missing'] : []), 'events.jsonl');
