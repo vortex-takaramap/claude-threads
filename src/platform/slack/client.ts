@@ -7,7 +7,7 @@ import { truncateMessageSafely, escapeRegExp, getEmojiName, formatWebSocketError
 import { BasePlatformClient } from '../base-client.js';
 import { sanitizeFilename } from '../../utils/safe-filename.js';
 import { uploadFileSlack } from './upload.js';
-import { spoolEvent } from './event-spool.js';
+import { spoolEvent, spoolReaction } from './event-spool.js';
 import { statusAnchor, dueForRefresh, STATUS_REFRESH_MS } from './status.js';
 
 const log = createLogger('slack');
@@ -72,6 +72,7 @@ export class SlackClient extends BasePlatformClient {
   private channelId: string;
   private apiUrl: string;
   private readonly eventSpoolPath = process.env.CLAUDE_THREADS_EVENT_SPOOL;
+  private readonly reactionSpoolPath = process.env.CLAUDE_THREADS_REACTION_SPOOL;
 
 
   // User caching
@@ -621,6 +622,9 @@ export class SlackClient extends BasePlatformClient {
     // Handle events_api envelopes
     if (envelope.type === 'events_api' && envelope.payload?.event) {
       spoolEvent(this.eventSpoolPath, envelope.payload);
+      if (!this.botUserId || envelope.payload.event.user !== this.botUserId) {
+        spoolReaction(this.reactionSpoolPath, envelope.payload);
+      }
       if (envelope.payload.api_app_id) this.appId = envelope.payload.api_app_id;
       this.handleSlackEvent(envelope.payload.event);
     }
